@@ -4,7 +4,9 @@
 
 # FIXME need to get correct sets of subregions
 
-# FIXME need to limit to single coronal slice
+# FIXME need to limit to single coronal slice. Let's do this in python
+# - just edit compute_extents.py to do the whole job, given the three
+# mask images.
 
 subj_dir=SUBJECT
 seg=${subj_dir}/mri/lh.hippoAmygLabels.mgz
