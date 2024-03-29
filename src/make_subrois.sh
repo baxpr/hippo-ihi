@@ -13,7 +13,7 @@ seg=${subj_dir}/mri/lh.hippoAmygLabels.mgz
 
 
 # Hippocampal head
-#    203 parasubiculum
+#   203 parasubiculum
 #   233  presubiculum-head
 #   235  subiculum-head
 #   237  CA1-head
