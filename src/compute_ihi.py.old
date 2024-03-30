@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+#
+# Compute extents of a binary mask on all axes, reporting in mm RAS
+
+import argparse
+import nibabel
+import numpy
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--subicular_img', required=True)
+parser.add_argument('--dentate_img', required=True)
+parser.add_argument('--hippohead_img', required=True)
+args = parser.parse_args()
+
+
+subicular = nibabel.load(args.subicular_img)
+dentate = nibabel.load(args.dentate_img)
+hippohead = nibabel.load(args.hippohead_img)
+
+
+
+# Posterior edge of hippocampal head. Working in voxel
+# coords
+hippohead_data = hippohead.get_fdata()
+locs = numpy.where(hippohead_data>0)
+body_posterior_edge = min(locs[1])
+
+# Range to use for measurements (These are voxels not mm)
+meas_ymin = body_posterior_edge - 7
+meas_ymax = body_posterior_edge - 2
+
+# Zero out the subic and dentate masks except within
+# the measurement range
+subicular_data = subicular.get_fdata()
+print(numpy.sum(subicular_data))
+
+print(f'{meas_ymin} {meas_ymax}')
+subicular_data[:,:,:] = 0
+print(numpy.sum(subicular_data))
+
+
+
+# We could use this, but I thing at the cost of easy output to new 
+# file for visualization
+#subicular_data = subicular.slicer[:,meas_ymin:meas_ymax,:]
+
+
+# Voxel extents
+#print(f'{imin} {imax} {jmin} {jmax} {kmin} {kmax}')
+
+# mm extents
+#print(f'{xmin} {xmax} {ymin} {ymax} {zmin} {zmax}')
