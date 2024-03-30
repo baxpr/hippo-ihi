@@ -5,6 +5,20 @@
 # FIXME need to get correct sets of subregions
 # Reference ${FREESURFER_HOME}/FreeSurferColorLUT.txt
 
+# FIXME we need to generate combined ROIs BEFORE resampling to
+# the rotated space, so we get them at high resolution.
+# The resampling is needed to align voxel axes with anatomical
+# axes so we can use voxel indexing to do our measurements.
+#
+# Hmm. Would be better if we can either (1) do the measurements 
+# based on the anatomical coords or (2) resample without losing
+# resolution (i.e. not with mri_vol2vol).
+#
+# For a high res template, FS seems to only have 
+# average/HippoSF/atlas/AtlasDump.mgz
+# Which is 0.25mm voxel, but in the wrong location in space.
+
+
 import argparse
 import nibabel
 import numpy

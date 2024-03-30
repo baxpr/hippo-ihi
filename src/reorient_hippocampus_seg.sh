@@ -23,13 +23,15 @@ for hemi in 'lh' 'rh'; do
 
     # Rotate to align long axis with Y, resampling this time. This reduces
     # spatial resolution to whatever the atlas is.
+    # Resample with
+    #         --nearest \
     rotdeg=-40
     mri_vol2vol \
         --mov "${out_dir}"/r${hemi}.hippoAmygLabels.mgz \
         --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \
         --regheader \
         --rot ${rotdeg} 0 0 \
-        --nearest \
+        --no-resample \
         --o "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz
 
 done
