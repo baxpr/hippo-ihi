@@ -24,6 +24,11 @@ import os
 
 def get_voxmm(img):
     dims = img.header['dim'][1:4]
+
+    m = meshgrid(range(dims[0]), range(dims[1]), range(dims[2]), indexing='ij')
+    print(m.shape)
+    sys.exit(0)
+
     x = numpy.zeros(dims, dtype=numpy.int16)
     y = numpy.zeros(dims, dtype=numpy.int16)
     z = numpy.zeros(dims, dtype=numpy.int16)
