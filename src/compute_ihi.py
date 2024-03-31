@@ -21,24 +21,27 @@ import nibabel
 import numpy
 import os
 
-def region_extent(seg_img, region_vals, ymin, ymax, out_file):
-
-    # Create ROI binary mask image
-    data = numpy.zeros(seg_img.header['dim'][1:4])
-    x = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
-    y = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
-    z = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
-    data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
-
-    # Get voxel coords in mm. Is there some way to do this that's vectorized/fast?
-    # Need all ijk coords in a list (see link above)
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            for k in range(data.shape[2]):
+def get_voxmm(img):
+    dims = img.header['dim'][1:4]
+    x = numpy.zeros(dims, dtype=numpy.int16)
+    y = numpy.zeros(dims, dtype=numpy.int16)
+    z = numpy.zeros(dims, dtype=numpy.int16)
+    for i in range(dims[0]):
+        for j in range(dims[1]):
+            for k in range(dims[2]):
                 xyz = nibabel.affines.apply_affine(seg_img.affine, [i, j, k])
                 x[i, j, k] = xyz[0]
                 y[i, j, k] = xyz[1]
                 z[i, j, k] = xyz[2]
+    return x, y, z
+
+def region_extent(seg_img, region_vals, ymin, ymax, out_file):
+
+    x, y, z = get_voxmm(seg_img)
+
+    # Create ROI binary mask image
+    data = numpy.zeros(seg_img.header['dim'][1:4])
+    data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
 
     # Zero out ex-slice voxels
     data[y<ymin] = 0
@@ -71,7 +74,7 @@ seg_img = nibabel.load(args.seg_niigz)
 # Grab the sets of subregions we need
 hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
 hipphead_data = numpy.zeros(seg_img.header['dim'][1:4])
-hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals, invert=False)] = 1
+hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals)] = 1
 hipphead_img = nibabel.Nifti1Image(hipphead_data, seg_img.affine)
 nibabel.save(hipphead_img, os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
 
