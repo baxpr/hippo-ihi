@@ -7,8 +7,11 @@
 subj_dir=../INPUTS/SUBJECT
 out_dir=../INPUTS
 
+# Define target space for image reorientations
 regtgt="${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz
 
+# Rotate around I axis to align hippocampus longitudinal axis
+# with image Y axis
 rotdeg=-40
 
 # Make resample target from atlas
