@@ -8,57 +8,61 @@ subj_dir=../INPUTS/SUBJECT
 out_dir=../INPUTS
 
 
+# FIXME Main hassle right now is that mri_vol2vol will not upsample for us,
+# but sets the voxel size based on the target template, and I don't have a clear
+# way to make those.
+#
+# In native space we could use the hipp seg itself as a template for resampling
+# the nu image, that's fine.
+#
+# In Tal space we can make a high res template from one of the FS atlases and
+# mri_convert with --upsample, --crop, --cropsize.
+#
+# In the Tal+rotation space - what here?
+
+
 # Work in out_dir
 cd "${out_dir}"
 
 
-# Resample nu to hippo atlas
-for hemi in 'lh' 'rh'; do
-
-    mri_convert \
-        "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
-        ${hemi}.hippoAmygLabels.nii.gz
-    
-    mri_vol2vol \
-        --mov "${subj_dir}"/mri/nu.mgz \
-        --targ ${hemi}.hippoAmygLabels.nii.gz \
-        --regheader \
-        --o "${out_dir}"/${hemi}.nu.nii.gz    
-
-done
-
-
-# Apply Tal transform. Resampling here is
-#   1 - needed to get qforms/sforms sensible
-#   2 - bad because it causes inappropriate cropping.
-#
-# Image is getting cropped to the targ volume, which
-# isn't currently aligned with anything useful.
-# Make a template and/or use mri_convert --crop, --cropsize, --upsample?
-# Template for --targ needs to be in tal space; small voxel size; ideally cropped to hipp area for speed
-#
-# All this is just to make things line up in freeview - fsleyes is ok
-# and python/nibabel processing seems ok too. Freeview uses qform
-# https://github.com/freesurfer/freesurfer/issues/1025#issuecomment-1320429995
-
-# Make a high resolution template to use as target for resampling
+# Make a high resolution template to use as target for resampling.
 mri_convert \
     --upsample 3 \
-    --crop 256 320 244 \
-    --cropsize 200 200 200 \
     "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/nu_noneck.mgz \
     template.nii.gz
 
+# Cropping is critical and an issue at the Tal stage and the rotation
+# stage. The crop box center and size are specified in voxels, at the output
+# resolution.
+#     --crop 384 480 366 \
+#    --cropsize 300 300 300 \
+
+
+# Resample to template.
+# FIXME This should not use the Tal space as target if we resample - we need a high res
+# target in the native space
+mri_vol2vol \
+    --mov "${subj_dir}"/mri/nu.mgz \
+    --targ template.nii.gz \
+    --regheader \
+    --o "${out_dir}"/hnu.nii.gz  
+for hemi in 'lh' 'rh'; do
+    mri_convert \
+        "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
+        ${hemi}.hippoAmygLabels.nii.gz
+done
+
+
+# Apply Tal transform
+# FIXME Here the Tal space target from MNI image is appropriate
+mri_vol2vol \
+    --mov hnu.nii.gz \
+    --targ template.nii.gz \
+    --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
+    --regheader \
+    --o tal-hnu.nii.gz
 
 for hemi in 'lh' 'rh'; do
-
-    mri_vol2vol \
-        --mov ${hemi}.nu.nii.gz \
-        --targ template.nii.gz \
-        --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
-        --regheader \
-        --o tal-${hemi}.nu.nii.gz
-
     mri_vol2vol \
         --mov "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
         --targ template.nii.gz \
@@ -66,12 +70,14 @@ for hemi in 'lh' 'rh'; do
         --regheader \
         --nearest \
         --o tal-${hemi}.hippoAmygLabels.nii.gz
-
 done
 
 
 # Apply additional rotation I axis to align hippocampus longitudinal axis
 # with image Y axis
+#
+# FIXME: Again we need a suitable target template if we resample. Tal is
+# not correctly placed
 #
 # Rotation matrix for -40 deg on I axis:
 #  1.00000   0.00000   0.00000   0.00000;
@@ -81,15 +87,14 @@ done
 
 rotdeg=-40
 
+mri_vol2vol \
+    --mov tal-hnu.nii.gz \
+    --targ template.nii.gz \
+    --rot ${rotdeg} 0 0 \
+    --regheader \
+    --o rot-tal-hnu.nii.gz 
+
 for hemi in 'lh' 'rh'; do
-
-    mri_vol2vol \
-        --mov tal-${hemi}.nu.nii.gz \
-        --targ template.nii.gz \
-        --rot ${rotdeg} 0 0 \
-        --regheader \
-        --o rot-tal-${hemi}.nu.nii.gz    
-
     mri_vol2vol \
         --mov tal-${hemi}.hippoAmygLabels.nii.gz \
         --targ template.nii.gz \
@@ -97,7 +102,6 @@ for hemi in 'lh' 'rh'; do
         --regheader \
         --nearest \
         --o rot-tal-${hemi}.hippoAmygLabels.nii.gz
-
 done
 
 
