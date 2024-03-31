@@ -47,19 +47,19 @@ def extract_region(seg_img, region_vals):
    return data
 
 
-def trim_region(seg_img, data, axis, minval, maxval)
+def trim_region(seg_img, data, axis, minval, maxval):
     xyz = get_voxmm(seg_img)
     data[xyz[:,:,:,axis]<minval] = 0
     data[xyz[:,:,:,axis]>maxval] = 0
     return data
 
 
-def write_region(seg_img, data, out_file)
+def write_region(seg_img, data, out_file):
     img = nibabel.Nifti1Image(data, seg_img.affine)
     nibabel.save(img, out_file)
 
 
-def get_region_extent(seg_img, data, axis)
+def get_region_extent(seg_img, data, axis):
     xyz = get_voxmm(seg_img)
     keeps = data>0
     minval = min(xyz[keeps,axis])
@@ -110,45 +110,33 @@ write_region(seg_img, hipphead_data,
     os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
 hipphead_ymin, hipphead_ymax = get_region_extent(seg_img, hipphead_data, 1)
 
-sys.exit(0)
-
-hipphead_data = numpy.zeros(seg_img.header['dim'][1:4])
-hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals)] = 1
-hipphead_img = nibabel.Nifti1Image(hipphead_data, seg_img.affine)
-nibabel.save(hipphead_img, os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
-
-hipphead_idx = numpy.where(hipphead_data)
-hipphead_ijk = numpy.vstack(hipphead_idx).T
-hipphead_xyz = nibabel.affines.apply_affine(seg_img.affine, hipphead_ijk)
-
-headmin = min(hipphead_xyz[:,1])
-
 # Sampling slice
-ymax = headmin - 2
-ymin = headmin - 3
+ymax = hipphead_ymin - 2
+ymin = hipphead_ymin - 3
 
-# Subiculum extent
-subicular_xmin, subicular_xmax = region_extent(
-    seg_img, 
-    [234, 236, 238], 
-    ymin, 
-    ymax, 
-    os.path.join(args.out_dir, f'{ftag}_subicular.nii.gz')
-    )
+# Subiculum
+subicular_vals = [234, 236, 238]
+subicular_data = extract_region(seg_img, subicular_vals)
+subicular_data = trim_region(seg_img, subicular_data, 1, ymin, ymax)
+subicular_xmin, subicular_xmax = get_region_extent(seg_img, subicular_data, 0)
+write_region(seg_img, subicular_data, 
+    os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
 
-# Dentate extent
-dentate_xmin, dentate_xmax = region_extent(
-    seg_img, 
-    [242, 244, 246],
-    ymin, 
-    ymax, 
-    os.path.join(args.out_dir, f'{ftag}_dentate.nii.gz')
-    )
+# Dentate
+dentate_vals = [242, 244, 246]
+dentate_data = extract_region(seg_img, dentate_vals)
+dentate_data = trim_region(seg_img, dentate_data, 1, ymin, ymax)
+dentate_xmin, dentate_xmax = get_region_extent(seg_img, dentate_data, 0)
+write_region(seg_img, dentate_data, 
+    os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
+
 
 # Report
 print('In rotated Tal space:')
-print(f'  Posterior edge of hippocampal head is y = {headmin:0.1f} mm')
+print(f'  Posterior edge of hippocampal head is y = {hipphead_ymin:0.1f} mm')
 print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
-print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm')
-print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm')
+print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm  '
+    f'(width {subicular_xmax-subicular_xmin:0.1f} mm)')
+print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm  '
+    f'(width {dentate_xmax-dentate_xmin:0.1f} mm)')
 
