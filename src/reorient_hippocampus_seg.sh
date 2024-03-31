@@ -24,6 +24,24 @@ rotdeg=-40
 #    "${out_dir}"/rAtlasT1.nii.gz \
 #    "${out_dir}"/crAtlasT1.nii.gz
 
+
+# Reorient structural for viewing. This does not align with the reoriented
+# hippocampal segmentations below - why not?
+mri_vol2vol \
+    --mov "${subj_dir}"/mri/nu.mgz \
+    --targ "${regtgt}" \
+    --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
+    --no-resample \
+    --o "${out_dir}"/rnu.nii.gz
+mri_vol2vol \
+    --mov "${out_dir}"/rnu.nii.gz \
+    --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \
+    --regheader \
+    --rot ${rotdeg} 0 0 \
+    --no-resample \
+    --o "${out_dir}"/rrnu.nii.gz
+
+
 # Reorient/resample the hippocampus segmentation
 for hemi in 'lh' 'rh'; do
 
@@ -37,9 +55,8 @@ for hemi in 'lh' 'rh'; do
         --no-resample \
         --o "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz
 
-    # Rotate to align long axis with Y, resampling this time. This reduces
-    # spatial resolution to whatever the atlas is.
-    # Resample with --nearest, or not with --no-resample
+    # Rotate to align long axis with Y, resampling this time. Can resample
+    # with --nearest, but this reduces spatial resolution to match the atlas. 
     mri_vol2vol \
         --mov "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz \
         --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \

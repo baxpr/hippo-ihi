@@ -94,7 +94,8 @@ if __name__ == '__main__':
     ymin = hipphead_ymin - 3
 
     # Subiculum
-    subicular_vals = [234, 236, 238]
+    #subicular_vals = [234, 236, 238]
+    subicular_vals = [234]
     subicular_data = extract_region(seg_img, subicular_vals)
     subicular_data = trim_region_on_axis(seg_img, subicular_data, 1, ymin, ymax)
     subicular_xmin, subicular_xmax = get_region_extent_on_axis(seg_img, subicular_data, 0)
@@ -102,7 +103,8 @@ if __name__ == '__main__':
         os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
     
     # Dentate
-    dentate_vals = [242, 244, 246]
+    #dentate_vals = [242, 244, 246]
+    dentate_vals = [244]
     dentate_data = extract_region(seg_img, dentate_vals)
     dentate_data = trim_region_on_axis(seg_img, dentate_data, 1, ymin, ymax)
     dentate_xmin, dentate_xmax = get_region_extent_on_axis(seg_img, dentate_data, 0)
