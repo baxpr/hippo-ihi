@@ -13,6 +13,20 @@
 #ijk = numpy.vstack(idx).T  # list of arrays to (voxels, 3) array
 #xyz = nibabel.affines.apply_affine(img.affine, ijk)  # get mm coords
 
+# Note: Subregions written out here in tal- and rot-tal- orientations 
+# are aligned properly in fsleyes, but not in freeview, even though
+# the source labels image they are derived from is aligned properly.
+# Something about qform/sform?
+#
+# qform differs but sform is the same between
+#   freesurfer image  tal-lh.hippoAmygLabels.nii.gz
+#   nibabel image     tal-lh.hippoAmygLabels_dentate_cropped.nii.gz
+#
+# qform cannot encode shears (https://nipy.org/nibabel/reference/nibabel.nifti1.html)
+# so the nibabel produced qform is only approximate anyway.
+#
+# Maybe we need to resample after the Tal step.
+
 # FIXME need to get correct sets of subregions
 # Reference ${FREESURFER_HOME}/FreeSurferColorLUT.txt
 #

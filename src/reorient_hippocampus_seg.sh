@@ -28,7 +28,9 @@ for hemi in 'lh' 'rh'; do
 done
 
 
-# Apply Tal transform
+# Apply Tal transform. Resampling here is
+#   1 - needed to get qforms/sforms sensible
+#   2 - bad because it causes inappropriate cropping
 for hemi in 'lh' 'rh'; do
 
     mri_vol2vol \
@@ -36,7 +38,6 @@ for hemi in 'lh' 'rh'; do
         --targ ${hemi}.nu.nii.gz \
         --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
         --regheader \
-        --no-resample \
         --o tal-${hemi}.nu.nii.gz
 
     mri_vol2vol \
@@ -44,7 +45,7 @@ for hemi in 'lh' 'rh'; do
         --targ ${hemi}.nu.nii.gz \
         --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
         --regheader \
-        --no-resample \
+        --nearest \
         --o tal-${hemi}.hippoAmygLabels.nii.gz
 
 done
@@ -68,7 +69,6 @@ for hemi in 'lh' 'rh'; do
         --targ ${hemi}.nu.nii.gz \
         --rot ${rotdeg} 0 0 \
         --regheader \
-        --no-resample \
         --o rot-tal-${hemi}.nu.nii.gz    
 
     mri_vol2vol \
@@ -76,7 +76,7 @@ for hemi in 'lh' 'rh'; do
         --targ ${hemi}.nu.nii.gz \
         --rot ${rotdeg} 0 0 \
         --regheader \
-        --no-resample \
+        --nearest \
         --o rot-tal-${hemi}.hippoAmygLabels.nii.gz
 
 done
