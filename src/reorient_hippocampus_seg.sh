@@ -7,100 +7,95 @@
 subj_dir=../INPUTS/SUBJECT
 out_dir=../INPUTS
 
-# Define target space for image reorientations
-regtgt="${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz
 
-# Rotate around I axis to align hippocampus longitudinal axis
-# with image Y axis
-rotdeg=-40
-
-# Make resample target from atlas
-#mri_vol2vol \
-#    --mov "${regtgt}" \
-#    --targ "${regtgt}"  \
-#    --regheader \
-#    --rot ${rotdeg} 0 0 \
-#    --no-resample \
-#    --o "${out_dir}"/rAtlasT1.nii.gz
-#mri_convert \
-#    --crop 0 0 -10 -vs 0.3 0.3 0.3 \
-#    "${out_dir}"/rAtlasT1.nii.gz \
-#    "${out_dir}"/crAtlasT1.nii.gz
+# Work in out_dir
+cd "${out_dir}"
 
 
-# Reorient/resample the hippocampus segmentation
+# Resample nu to hippo atlas
 for hemi in 'lh' 'rh'; do
 
-    # Transform to Tal space without resampling. (Alternatively, we could
-    # resample at this stage to use the Tal orientation rather than the axis
-    # aligned orientation produced below.)
+    mri_convert \
+        "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
+        ${hemi}.hippoAmygLabels.nii.gz
+    
     mri_vol2vol \
-        --mov "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
-        --targ "${regtgt}" \
-        --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
-        --no-resample \
-        --o "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz
-
-    # Rotate to align long axis with Y, resampling this time. Can resample
-    # with --nearest, but this reduces spatial resolution to match the atlas. 
-    mri_vol2vol \
-        --mov "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz \
-        --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \
+        --mov "${subj_dir}"/mri/nu.mgz \
+        --targ ${hemi}.hippoAmygLabels.nii.gz \
         --regheader \
-        --rot ${rotdeg} 0 0 \
-        --no-resample \
-        --o "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz
-
-    # Compute the desired metrics
-    compute_ihi.py --seg_niigz "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz --out_dir "${out_dir}" \
-        > "${out_dir}"/rr${hemi}.hippoAmygLabels-report.txt
+        --o "${out_dir}"/${hemi}.nu.nii.gz    
 
 done
 
 
-# Reorient structural for viewing. This does not align with the reoriented
-# hippocampal segmentations below - why not? Wonder if the Tal transform's
-# translations are actually not correct for the hippo segmentation somehow.
-# ... rotation center is probably different depending on source image FOV.
-mri_vol2vol \
-    --mov "${subj_dir}"/mri/nu.mgz \
-    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
-    --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
-    --no-resample \
-    --o "${out_dir}"/rnu_${hemi}.nii.gz
-mri_vol2vol \
-    --mov "${out_dir}"/rnu.nii.gz \
-    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
-    --regheader \
-    --rot ${rotdeg} 0 0 \
-    --no-resample \
-    --o "${out_dir}"/rrnu_${hemi}.nii.gz
+# Apply Tal transform
+for hemi in 'lh' 'rh'; do
+
+    mri_vol2vol \
+        --mov ${hemi}.nu.nii.gz \
+        --targ ${hemi}.nu.nii.gz \
+        --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
+        --regheader \
+        --no-resample \
+        --o tal-${hemi}.nu.nii.gz
+
+    mri_vol2vol \
+        --mov "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
+        --targ ${hemi}.nu.nii.gz \
+        --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
+        --regheader \
+        --no-resample \
+        --o tal-${hemi}.hippoAmygLabels.nii.gz
+
+done
 
 
-
-
-# The below is still not aligned
-
-# Apply Tal transform and upsample by 3x
-mri_convert \
-    --apply_transform "${subj_dir}"/mri/transforms/talairach.xfm \
-    -oc 0 0 0 \
-    --upsample 3 \
-    "${subj_dir}"/mri/nu.mgz \
-    "${out_dir}"/rnu_${hemi}.nii.gz
-
-# Rotate without resampling
-mri_vol2vol \
-    --mov "${out_dir}"/rnu_${hemi}.nii.gz \
-    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
-    --regheader \
-    --rot ${rotdeg} 0 0 \
-    --no-resample \
-    --o "${out_dir}"/rrnu_${hemi}.nii.gz
-
-
+# Apply additional rotation I axis to align hippocampus longitudinal axis
+# with image Y axis
+#
 # Rotation matrix for -40 deg on I axis:
 #  1.00000   0.00000   0.00000   0.00000;
 #  0.00000   0.76604   0.64279   0.00000;
 #  0.00000  -0.64279   0.76604   0.00000;
 #  0.00000   0.00000   0.00000   1.00000;
+
+rotdeg=-40
+
+for hemi in 'lh' 'rh'; do
+
+    mri_vol2vol \
+        --mov tal-${hemi}.nu.nii.gz \
+        --targ ${hemi}.nu.nii.gz \
+        --rot ${rotdeg} 0 0 \
+        --regheader \
+        --no-resample \
+        --o rot-tal-${hemi}.nu.nii.gz    
+
+    mri_vol2vol \
+        --mov tal-${hemi}.hippoAmygLabels.nii.gz \
+        --targ ${hemi}.nu.nii.gz \
+        --rot ${rotdeg} 0 0 \
+        --regheader \
+        --no-resample \
+        --o rot-tal-${hemi}.hippoAmygLabels.nii.gz
+
+done
+
+
+# Compute metrics of interest
+for hemi in 'lh' 'rh'; do
+
+    compute_ihi.py \
+        --seg_niigz ${hemi}.hippoAmygLabels.nii.gz --out_dir "${out_dir}" \
+        > ${hemi}.hippoAmygLabels-report.txt
+
+    compute_ihi.py \
+        --seg_niigz tal-${hemi}.hippoAmygLabels.nii.gz --out_dir "${out_dir}" \
+        > tal-${hemi}.hippoAmygLabels-report.txt
+
+    compute_ihi.py \
+        --seg_niigz rot-tal-${hemi}.hippoAmygLabels.nii.gz --out_dir "${out_dir}" \
+        > rot-tal-${hemi}.hippoAmygLabels-report.txt
+
+done
+

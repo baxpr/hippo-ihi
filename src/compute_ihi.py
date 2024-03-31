@@ -15,6 +15,11 @@
 
 # FIXME need to get correct sets of subregions
 # Reference ${FREESURFER_HOME}/FreeSurferColorLUT.txt
+#
+# Probably too generous:
+#   subicular_vals = [234, 236, 238]
+#   dentate_vals = [242, 244, 246]
+
 
 import argparse
 import nibabel
@@ -73,6 +78,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seg_niigz', required=True)
     parser.add_argument('--out_dir', required=True)
+    parser.add_argument('--hipphead_vals', default=[203, 233, 235, 237, 239, 241, 243, 245])
+    parser.add_argument('--subicular_vals', default=[234])
+    parser.add_argument('--dentate_vals', default=[244])
     args = parser.parse_args()
 
     # Filename tag
@@ -83,8 +91,7 @@ if __name__ == '__main__':
     seg_img = nibabel.load(args.seg_niigz)
 
     # Most posterior point of hippocampal head
-    hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
-    hipphead_data = extract_region(seg_img, hipphead_vals)
+    hipphead_data = extract_region(seg_img, args.hipphead_vals)
     write_region(seg_img, hipphead_data, 
         os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
     hipphead_ymin, hipphead_ymax = get_region_extent_on_axis(seg_img, hipphead_data, 1)
@@ -94,25 +101,21 @@ if __name__ == '__main__':
     ymin = hipphead_ymin - 3
 
     # Subiculum
-    #subicular_vals = [234, 236, 238]
-    subicular_vals = [234]
-    subicular_data = extract_region(seg_img, subicular_vals)
+    subicular_data = extract_region(seg_img, args.subicular_vals)
     subicular_data = trim_region_on_axis(seg_img, subicular_data, 1, ymin, ymax)
     subicular_xmin, subicular_xmax = get_region_extent_on_axis(seg_img, subicular_data, 0)
     write_region(seg_img, subicular_data, 
         os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
     
     # Dentate
-    #dentate_vals = [242, 244, 246]
-    dentate_vals = [244]
-    dentate_data = extract_region(seg_img, dentate_vals)
+    dentate_data = extract_region(seg_img, args.dentate_vals)
     dentate_data = trim_region_on_axis(seg_img, dentate_data, 1, ymin, ymax)
     dentate_xmin, dentate_xmax = get_region_extent_on_axis(seg_img, dentate_data, 0)
     write_region(seg_img, dentate_data, 
         os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
 
     # Report
-    print('In rotated Tal space:')
+    print(f'For {args.seg_niigz}:')
     print(f'  Posterior edge of hippocampal head is y = {hipphead_ymin:0.1f} mm')
     print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
     print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm  '
