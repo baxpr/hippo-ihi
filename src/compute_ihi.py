@@ -1,28 +1,60 @@
 #!/usr/bin/env python3
 #
-# Compute extents of a binary mask on all axes, reporting in mm RAS
+# Works with the "world" space coordinate axes per the transform 
+# (affine) in the nifti header. Limits to a slice in Y just posterior
+# of the hippocampal head, then finds the extent in X of subicular
+# and dentate regions as defined below from Freesurfer high resolution
+# hippocampus segmentation. 
+
+# REFERENCE: To get mm coords for a list of voxels
+# https://neurostars.org/t/extract-voxel-coordinates/7282
+# data = img.get_fdata()  # get image data as a numpy array
+#idx = numpy.where(data)  # find voxels that are not zeroes
+#ijk = numpy.vstack(idx).T  # list of arrays to (voxels, 3) array
+#xyz = nibabel.affines.apply_affine(img.affine, ijk)  # get mm coords
 
 # FIXME need to get correct sets of subregions
 # Reference ${FREESURFER_HOME}/FreeSurferColorLUT.txt
-
-# FIXME we need to generate combined ROIs BEFORE resampling to
-# the rotated space, so we get them at high resolution.
-# The resampling is needed to align voxel axes with anatomical
-# axes so we can use voxel indexing to do our measurements.
-#
-# Hmm. Would be better if we can either (1) do the measurements 
-# based on the anatomical coords or (2) resample without losing
-# resolution (i.e. not with mri_vol2vol).
-#
-# For a high res template, FS seems to only have 
-# average/HippoSF/atlas/AtlasDump.mgz
-# Which is 0.25mm voxel, but in the wrong location in space.
-
 
 import argparse
 import nibabel
 import numpy
 import os
+
+def region_extent(seg_img, region_vals, ymin, ymax, out_file):
+
+    # Create ROI binary mask image
+    data = numpy.zeros(seg_img.header['dim'][1:4])
+    x = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
+    y = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
+    z = numpy.zeros(seg_img.header['dim'][1:4], dtype=numpy.int16)
+    data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
+
+    # Get voxel coords in mm. Is there some way to do this that's vectorized/fast?
+    # Need all ijk coords in a list (see link above)
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            for k in range(data.shape[2]):
+                xyz = nibabel.affines.apply_affine(seg_img.affine, [i, j, k])
+                x[i, j, k] = xyz[0]
+                y[i, j, k] = xyz[1]
+                z[i, j, k] = xyz[2]
+
+    # Zero out ex-slice voxels
+    data[y<ymin] = 0
+    data[y>ymax] = 0
+
+    # Get min, max x values
+    keeps = data>0
+    xmin = min(x[keeps])
+    xmax = max(x[keeps])
+
+    # Save mask to file
+    img = nibabel.Nifti1Image(data, seg_img.affine)
+    nibabel.save(img, out_file)
+    
+    return xmin, xmax
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--seg_niigz', required=True)
@@ -35,48 +67,47 @@ ftag = os.path.basename(args.seg_niigz).strip('.nii.gz')
 # Load the Freesurfer hippocampus segmentations. We need nifti format
 # for the affines to work out correctly.
 seg_img = nibabel.load(args.seg_niigz)
-seg_data = seg_img.get_fdata()
-
-# Verify that the long axis of this image (Y) is the third voxel coord
-# and has '-' orientation. If this check is passed, we can assume the
-# third coord is our desired axis and the posterior end of hippocampus
-# has lower voxel coordinate.
-if (seg_img.affine[2,0:3] != numpy.array([0, -1, 0])).any():
-    raise Exception('Cannot handle image geometry')
 
 # Grab the sets of subregions we need
 hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
-hipphead_data = numpy.zeros(seg_data.shape)
-hipphead_data[numpy.isin(seg_data, hipphead_vals, invert=False)] = 1
+hipphead_data = numpy.zeros(seg_img.header['dim'][1:4])
+hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals, invert=False)] = 1
+hipphead_img = nibabel.Nifti1Image(hipphead_data, seg_img.affine)
+nibabel.save(hipphead_img, os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
 
-subicular_vals = [234, 236, 238]
-subicular_data = numpy.zeros(seg_data.shape)
-subicular_data[numpy.isin(seg_data, subicular_vals)] = 1
+hipphead_idx = numpy.where(hipphead_data)
+hipphead_ijk = numpy.vstack(hipphead_idx).T
+hipphead_xyz = nibabel.affines.apply_affine(seg_img.affine, hipphead_ijk)
 
-dentate_vals = [242, 244, 246]
-dentate_data = numpy.zeros(seg_data.shape)
-dentate_data[numpy.isin(seg_data, dentate_vals)] = 1
+# Most posterior point of hippocampal head
+headmin = min(hipphead_xyz[:,1])
 
-# Range to use for measurements, in voxels (should be 1mm voxel)
-locs = numpy.where(hipphead_data>0)
-body_posterior_edge = min(locs[2])
-meas_kmin = body_posterior_edge - 7
-meas_kmax = body_posterior_edge - 2
+# Sampling slice
+ymax = headmin - 2
+ymin = headmin - 3
 
-# Zero out the the ROI images outside the measurement slices
-subicular_data[:,:,0:meas_kmin] = 0
-subicular_data[:,:,meas_kmax:] = 0
-dentate_data[:,:,0:meas_kmin] = 0
-dentate_data[:,:,meas_kmax:] = 0
+# Subiculum
+subicular_xmin, subicular_xmax = region_extent(
+    seg_img, 
+    [234, 236, 238], 
+    ymin, 
+    ymax, 
+    os.path.join(args.out_dir, f'{ftag}_subicular.nii.gz')
+    )
 
-# Write out the measurement slices for later viewing
-subicular_cropped_img = nibabel.Nifti1Image(subicular_data, seg_img.affine)
-nibabel.save(
-    subicular_cropped_img, 
-    os.path.join(args.out_dir,f'{ftag}_subicular_cropped.nii.gz'))
+# Dentate
+dentate_xmin, dentate_xmax = region_extent(
+    seg_img, 
+    [242, 244, 246],
+    ymin, 
+    ymax, 
+    os.path.join(args.out_dir, f'{ftag}_dentate.nii.gz')
+    )
 
-dentate_cropped_img = nibabel.Nifti1Image(dentate_data, seg_img.affine)
-nibabel.save(
-    dentate_cropped_img, 
-    os.path.join(args.out_dir,f'{ftag}_dentate_cropped.nii.gz'))
+# Report
+print('In rotated Tal space:')
+print(f'  Posterior edge of hippocampal head is y = {headmin:0.2f} mm')
+print(f'  Sampling range is y = {ymin:0.2f} mm to {ymax:0.2f} mm')
+print(f'  Subiculum is x = {subicular_xmin:0.2f} mm to {subicular_xmax:0.2f} mm')
+print(f'  Dentate is x = {dentate_xmin:0.2f} mm to {dentate_xmax:0.2f} mm')
 

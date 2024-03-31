@@ -9,6 +9,22 @@ out_dir=../INPUTS
 
 regtgt="${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz
 
+rotdeg=-40
+
+# Make resample target from atlas
+#mri_vol2vol \
+#    --mov "${regtgt}" \
+#    --targ "${regtgt}"  \
+#    --regheader \
+#    --rot ${rotdeg} 0 0 \
+#    --no-resample \
+#    --o "${out_dir}"/rAtlasT1.nii.gz
+#mri_convert \
+#    --crop 0 0 -10 -vs 0.3 0.3 0.3 \
+#    "${out_dir}"/rAtlasT1.nii.gz \
+#    "${out_dir}"/crAtlasT1.nii.gz
+
+# Reorient/resample the hippocampus segmentation
 for hemi in 'lh' 'rh'; do
 
     # Transform to Tal space without resampling. (Alternatively, we could
@@ -19,15 +35,13 @@ for hemi in 'lh' 'rh'; do
         --targ "${regtgt}" \
         --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
         --no-resample \
-        --o "${out_dir}"/r${hemi}.hippoAmygLabels.mgz
+        --o "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz
 
     # Rotate to align long axis with Y, resampling this time. This reduces
     # spatial resolution to whatever the atlas is.
-    # Resample with
-    #         --nearest \
-    rotdeg=-40
+    # Resample with --nearest, or not with --no-resample
     mri_vol2vol \
-        --mov "${out_dir}"/r${hemi}.hippoAmygLabels.mgz \
+        --mov "${out_dir}"/r${hemi}.hippoAmygLabels.nii.gz \
         --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \
         --regheader \
         --rot ${rotdeg} 0 0 \
