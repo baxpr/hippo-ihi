@@ -59,7 +59,9 @@ done
 
 
 # Reorient structural for viewing. This does not align with the reoriented
-# hippocampal segmentations below - why not?
+# hippocampal segmentations below - why not? Wonder if the Tal transform's
+# translations are actually not correct for the hippo segmentation somehow.
+# ... rotation center is probably different depending on source image FOV.
 mri_vol2vol \
     --mov "${subj_dir}"/mri/nu.mgz \
     --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
@@ -71,5 +73,34 @@ mri_vol2vol \
     --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
     --regheader \
     --rot ${rotdeg} 0 0 \
+    --no-resample \
     --o "${out_dir}"/rrnu_${hemi}.nii.gz
 
+
+
+
+# The below is still not aligned
+
+# Apply Tal transform and upsample by 3x
+mri_convert \
+    --apply_transform "${subj_dir}"/mri/transforms/talairach.xfm \
+    -oc 0 0 0 \
+    --upsample 3 \
+    "${subj_dir}"/mri/nu.mgz \
+    "${out_dir}"/rnu_${hemi}.nii.gz
+
+# Rotate without resampling
+mri_vol2vol \
+    --mov "${out_dir}"/rnu_${hemi}.nii.gz \
+    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
+    --regheader \
+    --rot ${rotdeg} 0 0 \
+    --no-resample \
+    --o "${out_dir}"/rrnu_${hemi}.nii.gz
+
+
+# Rotation matrix for -40 deg on I axis:
+#  1.00000   0.00000   0.00000   0.00000;
+#  0.00000   0.76604   0.64279   0.00000;
+#  0.00000  -0.64279   0.76604   0.00000;
+#  0.00000   0.00000   0.00000   1.00000;
