@@ -30,7 +30,15 @@ done
 
 # Apply Tal transform. Resampling here is
 #   1 - needed to get qforms/sforms sensible
-#   2 - bad because it causes inappropriate cropping
+#   2 - bad because it causes inappropriate cropping.
+#
+# Image is getting cropped to the targ volume, which
+# isn't currently aligned with anything useful.
+# Make a template and/or use mri_convert --crop, --cropsize, --upsample?
+#
+# All this is just to make things line up in freeview - fsleyes is ok
+# and python/nibabel processing seems ok too. Freeview uses qform
+# https://github.com/freesurfer/freesurfer/issues/1025#issuecomment-1320429995
 for hemi in 'lh' 'rh'; do
 
     mri_vol2vol \
