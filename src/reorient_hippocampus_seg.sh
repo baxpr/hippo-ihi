@@ -35,22 +35,33 @@ done
 # Image is getting cropped to the targ volume, which
 # isn't currently aligned with anything useful.
 # Make a template and/or use mri_convert --crop, --cropsize, --upsample?
+# Template for --targ needs to be in tal space; small voxel size; ideally cropped to hipp area for speed
 #
 # All this is just to make things line up in freeview - fsleyes is ok
 # and python/nibabel processing seems ok too. Freeview uses qform
 # https://github.com/freesurfer/freesurfer/issues/1025#issuecomment-1320429995
+
+# Make a high resolution template to use as target for resampling
+mri_convert \
+    --upsample 3 \
+    --crop 256 320 244 \
+    --cropsize 200 200 200 \
+    "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/nu_noneck.mgz \
+    template.nii.gz
+
+
 for hemi in 'lh' 'rh'; do
 
     mri_vol2vol \
         --mov ${hemi}.nu.nii.gz \
-        --targ ${hemi}.nu.nii.gz \
+        --targ template.nii.gz \
         --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
         --regheader \
         --o tal-${hemi}.nu.nii.gz
 
     mri_vol2vol \
         --mov "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
-        --targ ${hemi}.nu.nii.gz \
+        --targ template.nii.gz \
         --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
         --regheader \
         --nearest \
@@ -74,14 +85,14 @@ for hemi in 'lh' 'rh'; do
 
     mri_vol2vol \
         --mov tal-${hemi}.nu.nii.gz \
-        --targ ${hemi}.nu.nii.gz \
+        --targ template.nii.gz \
         --rot ${rotdeg} 0 0 \
         --regheader \
         --o rot-tal-${hemi}.nu.nii.gz    
 
     mri_vol2vol \
         --mov tal-${hemi}.hippoAmygLabels.nii.gz \
-        --targ ${hemi}.nu.nii.gz \
+        --targ template.nii.gz \
         --rot ${rotdeg} 0 0 \
         --regheader \
         --nearest \
