@@ -21,6 +21,7 @@ import nibabel
 import numpy
 import os
 
+
 def get_voxmm(img):
     dims = img.header['dim'][1:4]
     x = numpy.zeros(dims, dtype=numpy.int16)
@@ -34,6 +35,7 @@ def get_voxmm(img):
                 y[i, j, k] = xyz[1]
                 z[i, j, k] = xyz[2]
     return x, y, z
+
 
 def region_extent(seg_img, region_vals, ymin, ymax, out_file):
 
@@ -71,7 +73,7 @@ ftag = os.path.basename(args.seg_niigz).strip('.nii.gz')
 # for the affines to work out correctly.
 seg_img = nibabel.load(args.seg_niigz)
 
-# Grab the sets of subregions we need
+# Most posterior point of hippocampal head
 hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
 hipphead_data = numpy.zeros(seg_img.header['dim'][1:4])
 hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals)] = 1
@@ -82,14 +84,13 @@ hipphead_idx = numpy.where(hipphead_data)
 hipphead_ijk = numpy.vstack(hipphead_idx).T
 hipphead_xyz = nibabel.affines.apply_affine(seg_img.affine, hipphead_ijk)
 
-# Most posterior point of hippocampal head
 headmin = min(hipphead_xyz[:,1])
 
 # Sampling slice
 ymax = headmin - 2
 ymin = headmin - 3
 
-# Subiculum
+# Subiculum extent
 subicular_xmin, subicular_xmax = region_extent(
     seg_img, 
     [234, 236, 238], 
@@ -98,7 +99,7 @@ subicular_xmin, subicular_xmax = region_extent(
     os.path.join(args.out_dir, f'{ftag}_subicular.nii.gz')
     )
 
-# Dentate
+# Dentate extent
 dentate_xmin, dentate_xmax = region_extent(
     seg_img, 
     [242, 244, 246],
