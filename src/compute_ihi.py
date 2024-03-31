@@ -23,41 +23,40 @@ import os
 
 
 def get_voxmm(img):
+    
     dims = img.header['dim'][1:4]
 
-    m = meshgrid(range(dims[0]), range(dims[1]), range(dims[2]), indexing='ij')
-    print(m.shape)
-    sys.exit(0)
+    # Compute voxel coordinates
+    m = numpy.meshgrid(range(dims[0]), range(dims[1]), range(dims[2]), indexing='ij')
 
-    x = numpy.zeros(dims, dtype=numpy.int16)
-    y = numpy.zeros(dims, dtype=numpy.int16)
-    z = numpy.zeros(dims, dtype=numpy.int16)
-    for i in range(dims[0]):
-        for j in range(dims[1]):
-            for k in range(dims[2]):
-                xyz = nibabel.affines.apply_affine(seg_img.affine, [i, j, k])
-                x[i, j, k] = xyz[0]
-                y[i, j, k] = xyz[1]
-                z[i, j, k] = xyz[2]
-    return x, y, z
+    # Flatten for use with apply_affine
+    ijk = numpy.vstack((m[0].flatten(), m[1].flatten(), m[2].flatten())).T
+
+    # Compute mm coords
+    xyz = nibabel.affines.apply_affine(seg_img.affine, ijk)
+
+    # Unflatten to match the data array
+    xyz = xyz.reshape(dims[0], dims[1], dims[2], 3)
+
+    return xyz
 
 
 def region_extent(seg_img, region_vals, ymin, ymax, out_file):
 
-    x, y, z = get_voxmm(seg_img)
+    xyz = get_voxmm(seg_img)
 
     # Create ROI binary mask image
     data = numpy.zeros(seg_img.header['dim'][1:4])
     data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
 
     # Zero out ex-slice voxels
-    data[y<ymin] = 0
-    data[y>ymax] = 0
+    data[xyz[:,:,:,1]<ymin] = 0
+    data[xyz[:,:,:,1]>ymax] = 0
 
     # Get min, max x values
     keeps = data>0
-    xmin = min(x[keeps])
-    xmax = max(x[keeps])
+    xmin = min(xyz[keeps,0])
+    xmax = max(xyz[keeps,0])
 
     # Save mask to file
     img = nibabel.Nifti1Image(data, seg_img.affine)
@@ -115,8 +114,8 @@ dentate_xmin, dentate_xmax = region_extent(
 
 # Report
 print('In rotated Tal space:')
-print(f'  Posterior edge of hippocampal head is y = {headmin:0.2f} mm')
-print(f'  Sampling range is y = {ymin:0.2f} mm to {ymax:0.2f} mm')
-print(f'  Subiculum is x = {subicular_xmin:0.2f} mm to {subicular_xmax:0.2f} mm')
-print(f'  Dentate is x = {dentate_xmin:0.2f} mm to {dentate_xmax:0.2f} mm')
+print(f'  Posterior edge of hippocampal head is y = {headmin:0.1f} mm')
+print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
+print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm')
+print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm')
 
