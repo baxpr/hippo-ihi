@@ -91,52 +91,54 @@ def region_extent(seg_img, region_vals, ymin, ymax, out_file):
     return xmin, xmax
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--seg_niigz', required=True)
-parser.add_argument('--out_dir', required=True)
-args = parser.parse_args()
+# Main number crunching
+if __name__ == '__main__':
 
-# Filename tag
-ftag = os.path.basename(args.seg_niigz).strip('.nii.gz')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seg_niigz', required=True)
+    parser.add_argument('--out_dir', required=True)
+    args = parser.parse_args()
 
-# Load the Freesurfer hippocampus segmentations. We need nifti format
-# for the affines to work out correctly.
-seg_img = nibabel.load(args.seg_niigz)
+    # Filename tag
+    ftag = os.path.basename(args.seg_niigz).strip('.nii.gz')
 
-# Most posterior point of hippocampal head
-hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
-hipphead_data = extract_region(seg_img, hipphead_vals)
-write_region(seg_img, hipphead_data, 
-    os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
-hipphead_ymin, hipphead_ymax = get_region_extent(seg_img, hipphead_data, 1)
+    # Load the Freesurfer hippocampus segmentations. We need nifti format
+    # for the affines to work out correctly.
+    seg_img = nibabel.load(args.seg_niigz)
 
-# Sampling slice
-ymax = hipphead_ymin - 2
-ymin = hipphead_ymin - 3
+    # Most posterior point of hippocampal head
+    hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
+    hipphead_data = extract_region(seg_img, hipphead_vals)
+    write_region(seg_img, hipphead_data, 
+        os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
+    hipphead_ymin, hipphead_ymax = get_region_extent(seg_img, hipphead_data, 1)
 
-# Subiculum
-subicular_vals = [234, 236, 238]
-subicular_data = extract_region(seg_img, subicular_vals)
-subicular_data = trim_region(seg_img, subicular_data, 1, ymin, ymax)
-subicular_xmin, subicular_xmax = get_region_extent(seg_img, subicular_data, 0)
-write_region(seg_img, subicular_data, 
-    os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
+    # Sampling slice
+    ymax = hipphead_ymin - 2
+    ymin = hipphead_ymin - 3
 
-# Dentate
-dentate_vals = [242, 244, 246]
-dentate_data = extract_region(seg_img, dentate_vals)
-dentate_data = trim_region(seg_img, dentate_data, 1, ymin, ymax)
-dentate_xmin, dentate_xmax = get_region_extent(seg_img, dentate_data, 0)
-write_region(seg_img, dentate_data, 
-    os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
+    # Subiculum
+    subicular_vals = [234, 236, 238]
+    subicular_data = extract_region(seg_img, subicular_vals)
+    subicular_data = trim_region(seg_img, subicular_data, 1, ymin, ymax)
+    subicular_xmin, subicular_xmax = get_region_extent(seg_img, subicular_data, 0)
+    write_region(seg_img, subicular_data, 
+        os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
+    
+    # Dentate
+    dentate_vals = [242, 244, 246]
+    dentate_data = extract_region(seg_img, dentate_vals)
+    dentate_data = trim_region(seg_img, dentate_data, 1, ymin, ymax)
+    dentate_xmin, dentate_xmax = get_region_extent(seg_img, dentate_data, 0)
+    write_region(seg_img, dentate_data, 
+        os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
 
-
-# Report
-print('In rotated Tal space:')
-print(f'  Posterior edge of hippocampal head is y = {hipphead_ymin:0.1f} mm')
-print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
-print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm  '
-    f'(width {subicular_xmax-subicular_xmin:0.1f} mm)')
-print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm  '
-    f'(width {dentate_xmax-dentate_xmin:0.1f} mm)')
+    # Report
+    print('In rotated Tal space:')
+    print(f'  Posterior edge of hippocampal head is y = {hipphead_ymin:0.1f} mm')
+    print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
+    print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm  '
+        f'(width {subicular_xmax-subicular_xmin:0.1f} mm)')
+    print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm  '
+        f'(width {dentate_xmax-dentate_xmin:0.1f} mm)')
 
