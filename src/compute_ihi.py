@@ -47,7 +47,7 @@ def extract_region(seg_img, region_vals):
    return data
 
 
-def trim_region(seg_img, data, axis, minval, maxval):
+def trim_region_on_axis(seg_img, data, axis, minval, maxval):
     xyz = get_voxmm(seg_img)
     data[xyz[:,:,:,axis]<minval] = 0
     data[xyz[:,:,:,axis]>maxval] = 0
@@ -59,36 +59,12 @@ def write_region(seg_img, data, out_file):
     nibabel.save(img, out_file)
 
 
-def get_region_extent(seg_img, data, axis):
+def get_region_extent_on_axis(seg_img, data, axis):
     xyz = get_voxmm(seg_img)
     keeps = data>0
     minval = min(xyz[keeps,axis])
     maxval = max(xyz[keeps,axis])
     return minval, maxval
-
-
-def region_extent(seg_img, region_vals, ymin, ymax, out_file):
-
-    xyz = get_voxmm(seg_img)
-
-    # Create ROI binary mask image
-    data = numpy.zeros(seg_img.header['dim'][1:4])
-    data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
-
-    # Zero out ex-slice voxels
-    data[xyz[:,:,:,1]<ymin] = 0
-    data[xyz[:,:,:,1]>ymax] = 0
-
-    # Get min, max x values
-    keeps = data>0
-    xmin = min(xyz[keeps,0])
-    xmax = max(xyz[keeps,0])
-
-    # Save mask to file
-    img = nibabel.Nifti1Image(data, seg_img.affine)
-    nibabel.save(img, out_file)
-    
-    return xmin, xmax
 
 
 # Main number crunching
@@ -111,7 +87,7 @@ if __name__ == '__main__':
     hipphead_data = extract_region(seg_img, hipphead_vals)
     write_region(seg_img, hipphead_data, 
         os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
-    hipphead_ymin, hipphead_ymax = get_region_extent(seg_img, hipphead_data, 1)
+    hipphead_ymin, hipphead_ymax = get_region_extent_on_axis(seg_img, hipphead_data, 1)
 
     # Sampling slice
     ymax = hipphead_ymin - 2
@@ -120,16 +96,16 @@ if __name__ == '__main__':
     # Subiculum
     subicular_vals = [234, 236, 238]
     subicular_data = extract_region(seg_img, subicular_vals)
-    subicular_data = trim_region(seg_img, subicular_data, 1, ymin, ymax)
-    subicular_xmin, subicular_xmax = get_region_extent(seg_img, subicular_data, 0)
+    subicular_data = trim_region_on_axis(seg_img, subicular_data, 1, ymin, ymax)
+    subicular_xmin, subicular_xmax = get_region_extent_on_axis(seg_img, subicular_data, 0)
     write_region(seg_img, subicular_data, 
         os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
     
     # Dentate
     dentate_vals = [242, 244, 246]
     dentate_data = extract_region(seg_img, dentate_vals)
-    dentate_data = trim_region(seg_img, dentate_data, 1, ymin, ymax)
-    dentate_xmin, dentate_xmax = get_region_extent(seg_img, dentate_data, 0)
+    dentate_data = trim_region_on_axis(seg_img, dentate_data, 1, ymin, ymax)
+    dentate_xmin, dentate_xmax = get_region_extent_on_axis(seg_img, dentate_data, 0)
     write_region(seg_img, dentate_data, 
         os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
 
