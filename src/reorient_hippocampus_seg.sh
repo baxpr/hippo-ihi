@@ -48,4 +48,8 @@ for hemi in 'lh' 'rh'; do
         --no-resample \
         --o "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz
 
+    # Compute the desired metrics
+    compute_ihi.py --seg_niigz "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz --out_dir "${out_dir}" \
+        > "${out_dir}"/rr${hemi}.hippoAmygLabels-report.txt
+
 done
