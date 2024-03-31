@@ -28,23 +28,6 @@ rotdeg=-40
 #    "${out_dir}"/crAtlasT1.nii.gz
 
 
-# Reorient structural for viewing. This does not align with the reoriented
-# hippocampal segmentations below - why not?
-mri_vol2vol \
-    --mov "${subj_dir}"/mri/nu.mgz \
-    --targ "${regtgt}" \
-    --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
-    --no-resample \
-    --o "${out_dir}"/rnu.nii.gz
-mri_vol2vol \
-    --mov "${out_dir}"/rnu.nii.gz \
-    --targ "${FREESURFER_HOME}"/subjects/cvs_avg35_inMNI152/mri/orig/001.mgz  \
-    --regheader \
-    --rot ${rotdeg} 0 0 \
-    --no-resample \
-    --o "${out_dir}"/rrnu.nii.gz
-
-
 # Reorient/resample the hippocampus segmentation
 for hemi in 'lh' 'rh'; do
 
@@ -73,3 +56,20 @@ for hemi in 'lh' 'rh'; do
         > "${out_dir}"/rr${hemi}.hippoAmygLabels-report.txt
 
 done
+
+
+# Reorient structural for viewing. This does not align with the reoriented
+# hippocampal segmentations below - why not?
+mri_vol2vol \
+    --mov "${subj_dir}"/mri/nu.mgz \
+    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
+    --xfm "${subj_dir}"/mri/transforms/talairach.xfm \
+    --no-resample \
+    --o "${out_dir}"/rnu_${hemi}.nii.gz
+mri_vol2vol \
+    --mov "${out_dir}"/rnu.nii.gz \
+    --targ "${out_dir}"/rr${hemi}.hippoAmygLabels.nii.gz \
+    --regheader \
+    --rot ${rotdeg} 0 0 \
+    --o "${out_dir}"/rrnu_${hemi}.nii.gz
+
