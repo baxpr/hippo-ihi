@@ -41,6 +41,32 @@ def get_voxmm(img):
     return xyz
 
 
+def extract_region(seg_img, region_vals):
+   data = numpy.zeros(seg_img.header['dim'][1:4])
+   data[numpy.isin(seg_img.get_fdata(), region_vals)] = 1
+   return data
+
+
+def trim_region(seg_img, data, axis, minval, maxval)
+    xyz = get_voxmm(seg_img)
+    data[xyz[:,:,:,axis]<minval] = 0
+    data[xyz[:,:,:,axis]>maxval] = 0
+    return data
+
+
+def write_region(seg_img, data, out_file)
+    img = nibabel.Nifti1Image(data, seg_img.affine)
+    nibabel.save(img, out_file)
+
+
+def get_region_extent(seg_img, data, axis)
+    xyz = get_voxmm(seg_img)
+    keeps = data>0
+    minval = min(xyz[keeps,axis])
+    maxval = max(xyz[keeps,axis])
+    return minval, maxval
+
+
 def region_extent(seg_img, region_vals, ymin, ymax, out_file):
 
     xyz = get_voxmm(seg_img)
@@ -79,6 +105,13 @@ seg_img = nibabel.load(args.seg_niigz)
 
 # Most posterior point of hippocampal head
 hipphead_vals = [203, 233, 235, 237, 239, 241, 243, 245]
+hipphead_data = extract_region(seg_img, hipphead_vals)
+write_region(seg_img, hipphead_data, 
+    os.path.join(args.out_dir, f'{ftag}_hipphead.nii.gz'))
+hipphead_ymin, hipphead_ymax = get_region_extent(seg_img, hipphead_data, 1)
+
+sys.exit(0)
+
 hipphead_data = numpy.zeros(seg_img.header['dim'][1:4])
 hipphead_data[numpy.isin(seg_img.get_fdata(), hipphead_vals)] = 1
 hipphead_img = nibabel.Nifti1Image(hipphead_data, seg_img.affine)
