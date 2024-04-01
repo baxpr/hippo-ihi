@@ -14,10 +14,11 @@ def get_hipp_xyz(img):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--img_dir', required=True)
+parser.add_argument('--hatag', required=True)
 args = parser.parse_args()
 
-lh_img = nibabel.load(os.path.join(args.img_dir,'lh.hippoAmygLabels.nii.gz'))
-rh_img = nibabel.load(os.path.join(args.img_dir,'rh.hippoAmygLabels.nii.gz'))
+lh_img = nibabel.load(os.path.join(args.img_dir,f'lh.{hatag}.nii.gz'))
+rh_img = nibabel.load(os.path.join(args.img_dir,f'rh.{hatag}.nii.gz'))
 
 lh_xyz = get_hipp_xyz(lh_img)
 rh_xyz = get_hipp_xyz(rh_img)
@@ -101,11 +102,11 @@ allmat = numpy.matmul(transmatCOM, allmat)
 
 new_lh_affine = numpy.matmul(allmat, lh_img.affine)
 new_lh_img = nibabel.Nifti1Image(lh_img.get_fdata(), new_lh_affine)
-nibabel.save(new_lh_img, os.path.join(args.img_dir, 'rlh.hippoAmygLabels.nii.gz'))
+nibabel.save(new_lh_img, os.path.join(args.img_dir, f'rlh.{hatag}.nii.gz'))
 
 new_rh_affine = numpy.matmul(allmat, rh_img.affine)
 new_rh_img = nibabel.Nifti1Image(rh_img.get_fdata(), new_rh_affine)
-nibabel.save(new_rh_img, os.path.join(args.img_dir, 'rrh.hippoAmygLabels.nii.gz'))
+nibabel.save(new_rh_img, os.path.join(args.img_dir, f'rrh.{hatag}.nii.gz'))
 
 # Now apply to nu to serve as underlay
 nu_img = nibabel.load(os.path.join(args.img_dir,'nu.nii.gz'))

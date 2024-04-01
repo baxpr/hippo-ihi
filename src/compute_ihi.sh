@@ -3,6 +3,9 @@
 # subj_dir
 # out_dir
 
+# Filename tag of hipp segmentation
+export hatag=hippoAmygLabels
+
 # Work in output directory
 cd "${out_dir}"
 
@@ -13,8 +16,8 @@ mri_convert \
 
 for hemi in lh rh; do
     mri_convert \
-        "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
-        ${hemi}.hippoAmygLabels.nii.gz
+        "${subj_dir}"/mri/${hemi}.${hatag}.mgz \
+        ${hemi}.${hatag}.nii.gz
 done
 
 # Rotate to align principal axes of hippocampus with image axes
@@ -23,9 +26,9 @@ inertia_rotate.py --img_dir "${out_dir}"
 # Compute IHI metrics
 for hemi in lh rh; do
     compute_ihi.py \
-        --seg_niigz r${hemi}.hippoAmygLabels.nii.gz \
+        --seg_niigz r${hemi}.${hatag}.nii.gz \
         --out_dir "${out_dir}" \
-        > r${hemi}.hippoAmygLabels-info.txt
+        > r${hemi}.${hatag}-info.txt
 done
 
 # Make QC PDF
