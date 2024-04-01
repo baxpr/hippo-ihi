@@ -94,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--out_dir', required=True)
     parser.add_argument('--hipphead_vals', default=[203, 233, 235, 237, 239, 241, 243, 245])
     parser.add_argument('--subicular_vals', default=[234])
-    parser.add_argument('--dentate_vals', default=[244])
+    parser.add_argument('--dentate_vals', default=[242, 244])
     args = parser.parse_args()
 
     # Filename tag
