@@ -108,12 +108,25 @@ if __name__ == '__main__':
     write_region(seg_img, subicular_data, 
         os.path.join(args.out_dir, f'{ftag}_subicular_cropped.nii.gz'))
     
+    # Subiculum marker volume
+    slice_data = numpy.ones(seg_img.header['dim'][1:4])
+    slice_data = trim_region_on_axis(seg_img, slice_data, 0, subicular_xmin, subicular_xmax)
+    write_region(seg_img, slice_data, 
+        os.path.join(args.out_dir, f'{ftag}_subicular_marker.nii.gz'))
+
     # Dentate
     dentate_data = extract_region(seg_img, args.dentate_vals)
     dentate_data = trim_region_on_axis(seg_img, dentate_data, 1, ymin, ymax)
     dentate_xmin, dentate_xmax = get_region_extent_on_axis(seg_img, dentate_data, 0)
     write_region(seg_img, dentate_data, 
         os.path.join(args.out_dir, f'{ftag}_dentate_cropped.nii.gz'))
+
+    # Dentate marker volume
+    slice_data = numpy.ones(seg_img.header['dim'][1:4])
+    slice_data = trim_region_on_axis(seg_img, slice_data, 0, dentate_xmin, dentate_xmax)
+    write_region(seg_img, slice_data, 
+        os.path.join(args.out_dir, f'{ftag}_dentate_marker.nii.gz'))
+
 
     # Report
     print(f'For {args.seg_niigz}:')
