@@ -91,6 +91,15 @@ if __name__ == '__main__':
     # Sampling slice
     ymax = hipphead_ymin - 2
     ymin = hipphead_ymin - 3
+    slice_data = numpy.ones(seg_img.header['dim'][1:4])
+    slice_data = trim_region_on_axis(seg_img, slice_data, 1, ymin, ymax)
+    write_region(seg_img, slice_data, 
+        os.path.join(args.out_dir, f'{ftag}_sampleslice.nii.gz'))
+
+    # Whole hippocampus
+    hipp_data = extract_region(seg_img, range(1,1000))
+    write_region(seg_img, hipp_data, 
+        os.path.join(args.out_dir, f'{ftag}_hippocampus.nii.gz'))
 
     # Subiculum
     subicular_data = extract_region(seg_img, args.subicular_vals)

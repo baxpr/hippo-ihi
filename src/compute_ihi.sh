@@ -6,7 +6,11 @@
 # Work in output directory
 cd "${out_dir}"
 
-# Convert hippocampal segs to nifti for nibabel
+# Convert nu, hippocampal segs to nifti for nibabel
+mri_convert \
+    "${subj_dir}"/mri/nu.mgz \
+    nu.nii.gz
+
 for hemi in lh rh; do
     mri_convert \
         "${subj_dir}"/mri/${hemi}.hippoAmygLabels.mgz \
@@ -14,7 +18,7 @@ for hemi in lh rh; do
 done
 
 # Rotate to align principal axes of hippocampus with image axes
-inertia.py --img_dir "${out_dir}"
+inertia_rotate.py --img_dir "${out_dir}"
 
 # Compute IHI metrics
 for hemi in lh rh; do

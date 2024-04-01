@@ -106,3 +106,10 @@ nibabel.save(new_lh_img, os.path.join(args.img_dir, 'rlh.hippoAmygLabels.nii.gz'
 new_rh_affine = numpy.matmul(allmat, rh_img.affine)
 new_rh_img = nibabel.Nifti1Image(rh_img.get_fdata(), new_rh_affine)
 nibabel.save(new_rh_img, os.path.join(args.img_dir, 'rrh.hippoAmygLabels.nii.gz'))
+
+# Now apply to nu to serve as underlay
+nu_img = nibabel.load(os.path.join(args.img_dir,'nu.nii.gz'))
+new_nu_affine = numpy.matmul(allmat, nu_img.affine)
+new_nu_img = nibabel.Nifti1Image(nu_img.get_fdata(), new_nu_affine)
+nibabel.save(new_nu_img, os.path.join(args.img_dir, 'rnu.nii.gz'))
+
