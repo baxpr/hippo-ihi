@@ -35,29 +35,50 @@ Imat = numpy.array([
     [Ixy, Iyy, Iyz],
     [Ixz, Iyz, Izz],
     ])
-print(Imat)
-print(' ')
+#print(Imat)
+#print(' ')
 
 # SVD of the inertial tensor gives a rotation matrix
 # Ue (=Ve.T) to the principal axes
 Ue, Se, Ve = numpy.linalg.svd(Imat)
-print(Ue)
 print(' ')
+print('Rotation matrix')
+print(Ue)
+print('Singular values')
+print(Se)
 
-#print(Se)
-#print(' ')
+
+# Same as SVD, just ordered by incr eigval instead of decr
+ev, ec = numpy.linalg.eig(Imat)
+print(' ')
+print('Eigenvectors')
+print(ec)
+print('Eigenvalues')
+print(ev)
+
 
 # Use scipy Rotation class to convert to angles
 # These angles don't make sense, so I either don't understand
 # Ue as a rotation matrix, or I don't understand the Euler 
 # angle formulation. Is it wanting to rotate long axis to X because
 # long axis has the highest moment of inertia? I want it on Y.
-r = Rotation.from_matrix(Ue)
+#
+# At any rate the 'y' angle seems to be the one we want to apply
+# on x axis. Haven't figured out the others.
+#
+# No idea what order mri_vol2vol applies its rotations in.
+r = Rotation.from_matrix(ec)
+print('Euler angles')
 print(r.as_euler('xyz', degrees=True))
-print(' ')
 
 
-rtest = Rotation.from_euler('xyz', [-40, -5, 5], degrees=True)
-print(rtest.as_matrix())
-
-
+m = [
+    [0, 0, 1],
+    [1, 0, 0],
+    [0, 1, 0],
+    ]
+rtest = Rotation.from_matrix(m)
+#print(m)
+#print(' ')
+#print(rtest.as_euler('xyz', degrees=True))
+#print(' ')

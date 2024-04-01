@@ -24,3 +24,13 @@ mri_concat \
     --o hippomasks.nii.gz \
     --sum
 
+
+# Rotate
+mri_vol2vol \
+    --mov hippomasks.nii.gz \
+    --targ hippomasks.nii.gz \
+    --regheader \
+    --rot -20 0 0 \
+    --o rot-test.nii.gz
+
+
