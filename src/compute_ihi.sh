@@ -4,7 +4,7 @@
 # out_dir
 
 # Filename tag of hipp segmentation
-export hatag=hippoAmygLabels
+export hatag=hippoAmygLabels-T1.v21
 
 # Work in output directory
 cd "${out_dir}"
@@ -21,7 +21,7 @@ for hemi in lh rh; do
 done
 
 # Rotate to align principal axes of hippocampus with image axes
-inertia_rotate.py --img_dir "${out_dir}"
+inertia_rotate.py --img_dir "${out_dir}" --hatag "${hatag}"
 
 # Compute IHI metrics
 for hemi in lh rh; do
