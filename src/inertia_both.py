@@ -31,7 +31,6 @@ com = numpy.array([
     numpy.mean(xyz[:,1]),
     numpy.mean(xyz[:,2]),
     ])
-#print('com'), print(com)
 
 x = xyz[:,0] - com[0]
 y = xyz[:,1] - com[1]
@@ -55,8 +54,6 @@ Imat = numpy.array([
 # SVD of the inertial tensor gives a rotation matrix Ue 
 # (=Ve.T) to the principal axes
 Ue, Se, Ve = numpy.linalg.svd(Imat)
-#print('Ue'); print(Ue)
-#print('Ve'); print(Ve)
 
 # But we need to re-sort axes and transpose to get the right result.
 # What is the principled way to do this?
@@ -67,7 +64,6 @@ t = numpy.array([
     [-1, 0, 0],
 ])
 reUe = numpy.matmul(Ue,t).T
-#print('reUe'), print(reUe)
 
 #testmat = numpy.array([
 #    [1, 0, 0],
@@ -75,7 +71,6 @@ reUe = numpy.matmul(Ue,t).T
 #    [0, .3420, .9397],
 #])
 #print('testmat'), print(testmat)
-
 
 # Translate COM to origin
 # Rotate
@@ -105,10 +100,9 @@ allmat = numpy.matmul(rotmat, transmat0)
 allmat = numpy.matmul(transmatCOM, allmat)
 
 new_lh_affine = numpy.matmul(allmat, lh_img.affine)
-new_rh_affine = numpy.matmul(allmat, rh_img.affine)
-
 new_lh_img = nibabel.Nifti1Image(lh_img.get_fdata(), new_lh_affine)
 nibabel.save(new_lh_img, os.path.join(args.img_dir, 'rlh.hippoAmygLabels.nii.gz'))
 
+new_rh_affine = numpy.matmul(allmat, rh_img.affine)
 new_rh_img = nibabel.Nifti1Image(rh_img.get_fdata(), new_rh_affine)
 nibabel.save(new_rh_img, os.path.join(args.img_dir, 'rrh.hippoAmygLabels.nii.gz'))
