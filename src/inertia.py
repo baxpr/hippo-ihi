@@ -36,16 +36,28 @@ Imat = numpy.array([
     [Ixz, Iyz, Izz],
     ])
 print(Imat)
+print(' ')
 
 # SVD of the inertial tensor gives a rotation matrix
 # Ue (=Ve.T) to the principal axes
 Ue, Se, Ve = numpy.linalg.svd(Imat)
-
 print(Ue)
-print(Se)
-print(Ve)
+print(' ')
+
+#print(Se)
+#print(' ')
 
 # Use scipy Rotation class to convert to angles
+# These angles don't make sense, so I either don't understand
+# Ue as a rotation matrix, or I don't understand the Euler 
+# angle formulation. Is it wanting to rotate long axis to X because
+# long axis has the highest moment of inertia? I want it on Y.
 r = Rotation.from_matrix(Ue)
 print(r.as_euler('xyz', degrees=True))
+print(' ')
+
+
+rtest = Rotation.from_euler('xyz', [-40, -5, 5], degrees=True)
+print(rtest.as_matrix())
+
 
