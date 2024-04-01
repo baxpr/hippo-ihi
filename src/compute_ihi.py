@@ -127,6 +127,8 @@ if __name__ == '__main__':
     write_region(seg_img, slice_data, 
         os.path.join(args.out_dir, f'{ftag}_dentate_marker.nii.gz'))
 
+    # IHI stat
+    ihi = (subicular_xmax-subicular_xmin) - (dentate_xmax-dentate_xmin)
 
     # Report
     print(f'For {args.seg_niigz}:')
@@ -136,4 +138,4 @@ if __name__ == '__main__':
         f'(width {subicular_xmax-subicular_xmin:0.1f} mm)')
     print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm  '
         f'(width {dentate_xmax-dentate_xmin:0.1f} mm)')
-
+    print(f'  IHI stat is {ihi:0.1f} mm')

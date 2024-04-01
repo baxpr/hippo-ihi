@@ -27,3 +27,6 @@ for hemi in lh rh; do
         --out_dir "${out_dir}" \
         > r${hemi}.hippoAmygLabels-info.txt
 done
+
+# Make QC PDF
+make_pdf.sh
