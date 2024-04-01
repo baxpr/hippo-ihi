@@ -36,7 +36,6 @@ Imat = numpy.array([
     [Ixy, Iyy, Iyz],
     [Ixz, Iyz, Izz],
     ])
-print('Imat'); print(Imat)
 
 # SVD of the inertial tensor gives a rotation matrix
 # Ue (=Ve.T) to the principal axes
@@ -44,17 +43,7 @@ Ue, Se, Ve = numpy.linalg.svd(Imat)
 
 # Use scipy Rotation class to convert to angles.
 # No idea what order mri_vol2vol applies its rotations in.
-print('Ue'); print(Ue)
 r = Rotation.from_matrix(Ue)
 rots = r.as_euler('xyz', degrees=True)
 print(f'{rots[0]} {rots[1]} {rots[2]}')
-
-
-m = [
-    [0, 0, 1],
-    [0, 1, 0],
-    [1, 0, 0],
-    ]
-rtest = Rotation.from_matrix(m)
-#print(rtest.as_euler('xyz', degrees=True))
 

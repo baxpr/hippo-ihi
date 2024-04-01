@@ -1,5 +1,9 @@
-#!/usr/bin/env
-
+#!/usr/bin/env bash
+#
+# Rotate principal inertial axes of bilateral hippocampus ROI
+# to align with XYZ axes in image mm space.
+#
+# Working, but FIXME how to apply to the actual segmentations?
 
 for hemi in lh rh; do
 
@@ -25,50 +29,26 @@ mri_concat \
     --o hippomasks.nii.gz \
     --sum
 
-# Get into RAS
+# Get mask into RAS
 mri_convert \
     --out_orientation RAS \
     hippomasks.nii.gz \
     hippomasks.nii.gz
 
-
-# Rotate
-
-# Long axis ends on AP, RL/IS are swapped. Note
-# that mri_vol2vol rotates on voxel axes, not mm.
-# Total rotations are
-#   - Output of inertia.py applied in freesurfer order (??)
-#   - Additional 90 in Y to get on different axes
-# Lot of confusion here about axes - xyz mm for inertia computations, ijk for FS rotations
-#rots=$(inertia.py --mask_niigz hippomasks.nii.gz)
-#rots="-92 -70 91"
-
-
-# Now data in file is stored RAS (LR/PA/IS). After rots,
-# Principle axis 1 LR (x/i) ends up on y/j
-# Principle axis 2 PA (y/j) ends up on x/i
-# Principle axis 3 IS (z/k) ends up on z/k
-
-
-rots="-92 -70 91"
-rots="92 70 -91"
+# Estimate and apply rotations
+rots=$(inertia.py --mask_niigz hippomasks.nii.gz)
 mri_vol2vol \
     --mov hippomasks.nii.gz \
     --targ hippomasks.nii.gz \
     --regheader \
     --rot $rots \
     --nearest \
-    --o rot-test.nii.gz
+    --o rhippomasks.nii.gz
 
-
-
-
-
-rots="-92 0 0"
 mri_vol2vol \
-    --mov rot-test.nii.gz \
+    --mov rhippomasks.nii.gz \
     --targ hippomasks.nii.gz \
     --regheader \
     --rot 0 90 0 \
     --nearest \
-    --o rot-test2.nii.gz
+    --o rhippomasks.nii.gz
