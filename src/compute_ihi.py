@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     # Sampling slice
     ymax = hipphead_ymin - 2
-    ymin = hipphead_ymin - 3
+    ymin = hipphead_ymin - 6
     slice_data = numpy.ones(seg_img.header['dim'][1:4])
     slice_data = trim_region_on_axis(seg_img, slice_data, 1, ymin, ymax)
     write_region(seg_img, slice_data, 
