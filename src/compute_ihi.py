@@ -148,5 +148,7 @@ if __name__ == '__main__':
         'ihi_stat': ihi,
     }]
     statdf = pandas.DataFrame.from_dict(stats)
-    statdf.to_csv(os.path.join(args.out_dir, f'{args.hemi}.hippo-ihi.csv'), index=False)
+    stats_dir = os.path.join(args.out_dir, 'STATS')
+    os.makedirs(stats_dir)
+    statdf.to_csv(os.path.join(stats_dir, f'{args.hemi}-hippo-ihi.csv'), index=False)
 
