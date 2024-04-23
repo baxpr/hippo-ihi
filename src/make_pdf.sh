@@ -32,3 +32,5 @@ freeview \
     -ss ${hemi}_cor.png
 
 done
+
+# FIXME combine to PDF
