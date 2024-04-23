@@ -2,6 +2,9 @@
 #
 # subj_dir
 # out_dir
+# slice_min_delta
+# slice_max_delta
+# hatag
 
 # Filename tag of hipp segmentation
 export hatag=hippoAmygLabels-T1.v21
@@ -26,9 +29,9 @@ inertia_rotate.py --img_dir "${out_dir}" --hatag "${hatag}"
 # Compute IHI metrics
 for hemi in lh rh; do
     compute_ihi.py \
+        --hemi ${hemi} \
         --seg_niigz r${hemi}.${hatag}.nii.gz \
-        --out_dir "${out_dir}" \
-        > r${hemi}.${hatag}-info.txt
+        --out_dir "${out_dir}"
 done
 
 # Make QC PDF

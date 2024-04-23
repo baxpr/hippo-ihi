@@ -16,6 +16,7 @@
 import argparse
 import nibabel
 import numpy
+import pandas
 import os
 
 
@@ -68,11 +69,14 @@ def get_region_extent_on_axis(seg_img, data, axis):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--hemi', required=True)
     parser.add_argument('--seg_niigz', required=True)
     parser.add_argument('--out_dir', required=True)
     parser.add_argument('--hipphead_vals', default=[203, 233, 235, 237, 239, 241, 243, 245])
     parser.add_argument('--subicular_vals', default=[234])
     parser.add_argument('--dentate_vals', default=[242, 244])
+    parser.add_argument('--slice_min_delta', default=2)
+    parser.add_argument('--slice_max_delta', default=6)
     args = parser.parse_args()
 
     # Filename tag
@@ -89,8 +93,8 @@ if __name__ == '__main__':
     hipphead_ymin, hipphead_ymax = get_region_extent_on_axis(seg_img, hipphead_data, 1)
 
     # Sampling slice
-    ymax = hipphead_ymin - 2
-    ymin = hipphead_ymin - 6
+    ymax = hipphead_ymin - args.slice_min_delta
+    ymin = hipphead_ymin - args.slice_max_delta
     slice_data = numpy.ones(seg_img.header['dim'][1:4])
     slice_data = trim_region_on_axis(seg_img, slice_data, 1, ymin, ymax)
     write_region(seg_img, slice_data, 
@@ -130,12 +134,19 @@ if __name__ == '__main__':
     # IHI stat
     ihi = (subicular_xmax-subicular_xmin) - (dentate_xmax-dentate_xmin)
 
-    # Report
-    print(f'For {args.seg_niigz}:')
-    print(f'  Posterior edge of hippocampal head is y = {hipphead_ymin:0.1f} mm')
-    print(f'  Sampling range is y = {ymin:0.1f} mm to {ymax:0.1f} mm')
-    print(f'  Subiculum is x = {subicular_xmin:0.1f} mm to {subicular_xmax:0.1f} mm  '
-        f'(width {subicular_xmax-subicular_xmin:0.1f} mm)')
-    print(f'  Dentate is x = {dentate_xmin:0.1f} mm to {dentate_xmax:0.1f} mm  '
-        f'(width {dentate_xmax-dentate_xmin:0.1f} mm)')
-    print(f'  IHI stat is {ihi:0.1f} mm')
+    # Output csv
+    stats = [{
+        'hemisphere': args.hemi,
+        'source_file': args.seg_niigz,
+        'head_posterior_edge_mm': hipphead_ymin,
+        'slice_ymin_mm': ymin,
+        'slice_ymax_mm': ymax,
+        'subic_xmin_mm': subicular_xmin,
+        'subic_xmax_mm': subicular_xmax,
+        'dentate_xmin_mm': dentate_xmin,
+        'dentate_xmax_mm': dentate_xmax,
+        'ihi_stat': ihi,
+    }]
+    statdf = pandas.DataFrame.from_dict(stats)
+    statdf.to_csv(os.path.join(args.out_dir, f'{args.hemi}.hippo-ihi.csv'), index=False)
+
