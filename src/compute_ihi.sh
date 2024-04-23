@@ -6,6 +6,7 @@ export out_dir=/OUTPUTS
 export hatag=hippoAmygLabels-T1.v21
 export slice_min_delta=2
 export slice_max_delta=6
+export label_info="Unknown session and scan"
 
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -15,6 +16,7 @@ while [[ $# -gt 0 ]]; do
         --hatag)             export hatag="$2";             shift; shift ;;
         --slice_min_delta)   export slice_min_delta="$2";   shift; shift ;;
         --slice_max_delta)   export slice_max_delta="$2";   shift; shift ;;
+        --label_info)        export label_info="$2";        shift; shift ;;
         *) echo "Input ${1} not recognized"; shift ;;
     esac
 done

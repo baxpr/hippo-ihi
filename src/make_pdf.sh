@@ -33,4 +33,24 @@ freeview \
 
 done
 
-# FIXME combine to PDF
+
+# Layout
+montage -mode concatenate \
+    lh_cor.png rh_cor.png lh_sag.png rh_sag.png \
+    -tile 2x2 -quality 100 -background white -gravity center \
+    -trim -border 10 -bordercolor white -resize 600x page.png
+
+# Add info
+# 8.5 x 11 at 144dpi is 1224 x 1584
+# inside 15px border is 1194 x 1554
+convert \
+    -size 1224x1584 xc:white \
+    -gravity center \( page.png -resize 1194x1454 \) -geometry +0+0 -composite \
+    -gravity NorthEast -pointsize 24 -annotate +20+50 "Hippocampus IHI" \
+    -gravity SouthEast -pointsize 24 -annotate +20+20 "$(date)" \
+    -gravity NorthWest -pointsize 24 -annotate +20+50 "${label_info}" \
+    page.png
+
+# PDF
+convert page.png hippo-ihi.pdf
+
