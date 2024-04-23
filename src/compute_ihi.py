@@ -75,8 +75,8 @@ if __name__ == '__main__':
     parser.add_argument('--hipphead_vals', default=[203, 233, 235, 237, 239, 241, 243, 245])
     parser.add_argument('--subicular_vals', default=[234])
     parser.add_argument('--dentate_vals', default=[242, 244])
-    parser.add_argument('--slice_min_delta', default=2)
-    parser.add_argument('--slice_max_delta', default=6)
+    parser.add_argument('--slice_min_delta', default=2, type=float)
+    parser.add_argument('--slice_max_delta', default=6, type=float)
     args = parser.parse_args()
 
     # Filename tag

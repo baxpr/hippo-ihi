@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Defaults
-expirt subj_dir=/INPUTS/SUBJECT/SUBJECT
+export subj_dir=/INPUTS/SUBJECT/SUBJECT
 export out_dir=/OUTPUTS
 export hatag=hippoAmygLabels-T1.v21
 export slice_min_delta=2
