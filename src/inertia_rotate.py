@@ -56,6 +56,10 @@ Imat = numpy.array([
 # (=Ve.T) to the principal axes
 Ue, Se, Ve = numpy.linalg.svd(Imat)
 
+# FIXME we need to choose the sign of the x rotation to minimize
+# the actual angle traversed so that we don't flip everything upside
+# down.
+
 # But we need to re-sort axes and transpose to get the right result.
 # What is the principled way to do this?
 # As this uses xyz mm coords, the data order of the file is irrelevant.
