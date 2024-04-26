@@ -57,15 +57,8 @@ Imat = numpy.array([
     [Ixz, Iyz, Izz],
     ])
 
-print('Imat')
-print(Imat)
-
 # Eigenvectors
 eigval, eigvec = numpy.linalg.eig(Imat)
-print('Raw eigvec')
-print(eigvec)
-print('eigval')
-print(eigval)
 
 # Sort eigenvectors by eigenvalue so that principal axes are ordered
 #     x, y, z  =  ~LR, ~AP, ~IS
@@ -76,20 +69,12 @@ idx = eigval.argsort()
 eigval = eigval[idx]
 eigvec = eigvec[:,idx]
 
-print('Sorted eigvec')
-print(eigvec)
-print('Sorted eigval')
-print(eigval)
-
 # Eigvec direction is arbitrary and algorithm dependent. So flip signs 
 # on principal axes (cols of np_eigvec) to make the largest element positive.
 for a in range(0,3):
     idx = numpy.argmax(abs(eigvec[:,a]))
     flip = numpy.sign(eigvec[idx,a])
     eigvec[:,a] = flip * eigvec[:,a]
-
-print('Flipped eigvec')
-print(eigvec)
 
 # Pre-multiplying a lab frame coord by eigvec.T gives the same coord in the
 # inertial frame. To re-orient the hippocampus, we want these inertial
@@ -117,21 +102,19 @@ transmatCOM = numpy.array([
 # We first translate to COM, then rotate, then translate back,
 # and the resulting matrix is left side multiplied with the affine
 # to produce the new affine.
-#allmat = numpy.matmul(rotmat, transmat0)
-#allmat = numpy.matmul(transmatCOM, allmat)
 allmat = transmatCOM @ rotmat @ transmat0
 
-new_lh_affine = numpy.matmul(allmat, lh_img.affine)
+new_lh_affine = allmat @ lh_img.affine
 new_lh_img = nibabel.Nifti1Image(lh_img.get_fdata(), new_lh_affine)
 nibabel.save(new_lh_img, os.path.join(args.img_dir, f'rlh.{args.hatag}.nii.gz'))
 
-new_rh_affine = numpy.matmul(allmat, rh_img.affine)
+new_rh_affine = allmat @ rh_img.affine
 new_rh_img = nibabel.Nifti1Image(rh_img.get_fdata(), new_rh_affine)
 nibabel.save(new_rh_img, os.path.join(args.img_dir, f'rrh.{args.hatag}.nii.gz'))
 
 # Now apply to nu to serve as underlay
 nu_img = nibabel.load(os.path.join(args.img_dir,'nu.nii.gz'))
-new_nu_affine = numpy.matmul(allmat, nu_img.affine)
+new_nu_affine = allmat @ nu_img.affine
 new_nu_img = nibabel.Nifti1Image(nu_img.get_fdata(), new_nu_affine)
 nibabel.save(new_nu_img, os.path.join(args.img_dir, 'rnu.nii.gz'))
 
