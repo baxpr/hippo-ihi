@@ -21,9 +21,9 @@ Ixx = sum(y.^2 + z.^2);
 Iyy = sum(x.^2 + z.^2);
 Izz = sum(x.^2 + y.^2);
 
-Ixy = x*y';
-Ixz = x*z';
-Iyz = y*z';
+Ixy = -x*y';
+Ixz = -x*z';
+Iyz = -y*z';
 
 Imat = [ ...
     Ixx Ixy Ixz;
@@ -43,18 +43,14 @@ Imat = [ ...
 %     - Lab/world frame, mm from nifti header, xyz = affine * ijk
 %     - Inertial frame
 
-% Post-multiplying an inertial frame coord by eigvec gives the same coord
-% in the lab frame. E.g. the lab frame coord of the inertial frame's x axis
-% is
-%   [1 0 0] * eigvec;
-% In other words, the rows of eigvec are the principal axes in the lab
-% frame.
+% The columns of the eigenvector matrix (i.e. the eigenvectors) are the
+% inertial principal axes in the lab frame.
 figure(1); clf
 subplot(1,2,1); hold on
 plot3(x,y,z,'.k')
-plot3([0 40*eigvec(1,1)],[0 40*eigvec(1,2)],[0 40*eigvec(1,3)],'-r')
-plot3([0 40*eigvec(2,1)],[0 40*eigvec(2,2)],[0 40*eigvec(2,3)],'-g')
-plot3([0 40*eigvec(3,1)],[0 40*eigvec(3,2)],[0 40*eigvec(3,3)],'-b')
+plot3([0 40*eigvec(1,1)],[0 40*eigvec(2,1)],[0 40*eigvec(3,1)],'-r')
+plot3([0 40*eigvec(1,2)],[0 40*eigvec(2,2)],[0 40*eigvec(3,2)],'-g')
+plot3([0 40*eigvec(1,3)],[0 40*eigvec(2,3)],[0 40*eigvec(3,3)],'-b')
 xlabel('X (lab)')
 ylabel('Y (lab)')
 zlabel('Z (lab)')
@@ -62,10 +58,10 @@ grid on
 axis equal
 
 
-% Pre-multiplying a lab frame coord by eigvec gives the same coord in the
+% Pre-multiplying a lab frame coord by eigvec' gives the same coord in the
 % inertial frame. To re-orient the hippocampus, we want these inertial
 % frame coords for each voxel in the structure.
-rxyz = eigvec * [x; y; z];
+rxyz = eigvec' * [x; y; z];
 rx = rxyz(1,:);
 ry = rxyz(2,:);
 rz = rxyz(3,:);
@@ -92,7 +88,7 @@ pretrans = [
     0 0 0 1
     ];
 rot = [
-    eigvec [0; 0; 0];
+    eigvec' [0; 0; 0];
     0 0 0 1
     ];
 posttrans = [
@@ -116,14 +112,21 @@ end
 
 %%
 % Compare vs numpy.linalg.eig - why do we need to transpose for case2?
-% Somehow python is computing a different Imat for case2 (signs different
-% on some off-diags). We have the same number of voxels for python and
-% matlab
+% Somehow python is computing a different Imat for case2 (signs opposite on
+% off-diags). We have the same number of voxels for python and matlab, min
+% and max x,y,z coords of hippo voxels match.
 np_eigvec = [ ...
     0.99796191  0.06320797 -0.00876178;
     -0.04870839  0.84324049  0.5353251;
     0.0412251  -0.53380729  0.84460066
     ];
+
+
+% xyz coords
+min(xyz(3,:))
+max(xyz(3,:))
+
+
 
 figure(3); clf; hold on
 

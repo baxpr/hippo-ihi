@@ -9,6 +9,7 @@ import sys
 def get_hipp_xyz(img):
     data = img.get_fdata()
     idx = numpy.where((data>0) & (data<1000))  # find hippocampus voxels
+    print(idx)
     ijk = numpy.vstack(idx).T  # list of arrays to (voxels, 3) array
     xyz = nibabel.affines.apply_affine(img.affine, ijk)  # get mm coords
     return xyz
@@ -26,18 +27,9 @@ rh_xyz = get_hipp_xyz(rh_img)
 
 # mm coords of all voxels in both hippocampi
 xyz = numpy.concatenate((lh_xyz, rh_xyz), axis=0)
-
-print('left affine')
-print(lh_img.affine)
-
-print('right affine')
-print(rh_img.affine)
-
-print('Shape of xyz')
 print(xyz.shape)
-
-print('xyz[0,]')
-print(xyz[0,])
+print(numpy.min(xyz[:,2]))
+print(numpy.max(xyz[:,2]))
 
 # mm coords relative to center of mass
 com = numpy.array([
@@ -90,29 +82,21 @@ print('Sorted eigval')
 print(eigval)
 
 # Eigvec direction is arbitrary and algorithm dependent. So flip signs 
-# on principal axes (rows of np_eigvec) to make the largest element positive.
+# on principal axes (cols of np_eigvec) to make the largest element positive.
 for a in range(0,3):
-    idx = numpy.argmax(abs(eigvec[a,]))
-    flip = numpy.sign(eigvec[a,idx])
-    eigvec[a,] = flip * eigvec[a,]
+    idx = numpy.argmax(abs(eigvec[:,a]))
+    flip = numpy.sign(eigvec[idx,a])
+    eigvec[:,a] = flip * eigvec[:,a]
 
 print('Flipped eigvec')
 print(eigvec)
-sys.exit(0)
 
-# Post-multiplying an inertial frame coord by eigvec gives the same coord in
-# the lab frame. E.g. the lab frame coord of the inertial frame's x axis is
-#
-#   [1 0 0] * eigvec
-#
-# In other words, the rows of eigvec are the principal axes in the lab frame.
-#
-# Pre-multiplying a lab frame coord by eigvec gives the same coord in the
+# Pre-multiplying a lab frame coord by eigvec.T gives the same coord in the
 # inertial frame. To re-orient the hippocampus, we want these inertial
 # frame coords for each voxel in the structure.
 
 # Rotation
-rotmat = eigvec;
+rotmat = eigvec.T;
 rotmat = numpy.hstack(( rotmat, numpy.array([[0], [0], [0]]) ))
 rotmat = numpy.vstack(( rotmat, numpy.array([[0, 0, 0, 1]]) ))
 
@@ -133,8 +117,9 @@ transmatCOM = numpy.array([
 # We first translate to COM, then rotate, then translate back,
 # and the resulting matrix is left side multiplied with the affine
 # to produce the new affine.
-allmat = numpy.matmul(rotmat, transmat0)
-allmat = numpy.matmul(transmatCOM, allmat)
+#allmat = numpy.matmul(rotmat, transmat0)
+#allmat = numpy.matmul(transmatCOM, allmat)
+allmat = transmatCOM @ rotmat @ transmat0
 
 new_lh_affine = numpy.matmul(allmat, lh_img.affine)
 new_lh_img = nibabel.Nifti1Image(lh_img.get_fdata(), new_lh_affine)
