@@ -1,7 +1,7 @@
-lhV = spm_vol('../INPUTS/case1/lh.hippoAmygLabels-T1.v21.nii.gz');
+lhV = spm_vol('../INPUTS/case2/lh.hippoAmygLabels-T1.v21.nii.gz');
 [lhY,lhXYZ] = spm_read_vols(lhV);
 
-rhV = spm_vol('../INPUTS/case1/rh.hippoAmygLabels-T1.v21.nii.gz');
+rhV = spm_vol('../INPUTS/case2/rh.hippoAmygLabels-T1.v21.nii.gz');
 [rhY,rhXYZ] = spm_read_vols(rhV);
 
 % mm coords of all voxels in both hippocampi
@@ -36,29 +36,113 @@ Imat = [ ...
 % First vector is L/R, second is A/P, third is I/S. This is the order such
 % that moment of inertia about each axis is in order from lowest to
 % highest.
-[V,D] = eig(Imat);
+[eigvec,eigval] = eig(Imat);
+
+% There are several coordinate systems in play:
+%     - Voxel frame ijk
+%     - Lab/world frame, mm from nifti header, xyz = affine * ijk
+%     - Inertial frame
+
+% Post-multiplying an inertial frame coord by eigvec gives the same coord
+% in the lab frame. E.g. the lab frame coord of the inertial frame's x axis
+% is
+%   [1 0 0] * eigvec;
+% In other words, the rows of eigvec are the principal axes in the lab
+% frame.
+figure(1); clf
+subplot(1,2,1); hold on
+plot3(x,y,z,'.k')
+plot3([0 40*eigvec(1,1)],[0 40*eigvec(1,2)],[0 40*eigvec(1,3)],'-r')
+plot3([0 40*eigvec(2,1)],[0 40*eigvec(2,2)],[0 40*eigvec(2,3)],'-g')
+plot3([0 40*eigvec(3,1)],[0 40*eigvec(3,2)],[0 40*eigvec(3,3)],'-b')
+xlabel('X (lab)')
+ylabel('Y (lab)')
+zlabel('Z (lab)')
+grid on
+axis equal
 
 
-% Apply rotation to COM positioned coords
-rxyz = V * [x; y; z];
+% Pre-multiplying a lab frame coord by eigvec gives the same coord in the
+% inertial frame. To re-orient the hippocampus, we want these inertial
+% frame coords for each voxel in the structure.
+rxyz = eigvec * [x; y; z];
 rx = rxyz(1,:);
 ry = rxyz(2,:);
 rz = rxyz(3,:);
 
-
-%% Some plots
-figure(1); clf; hold on
-plot3(x,y,z,'.k')
-plot3(rx,ry,rz,'.y')
-xlabel('X')
-ylabel('Y')
-zlabel('Z')
+figure(1)
+subplot(1,2,2); hold on
+plot3(rx,ry,rz,'.k')
+plot3([0 40],[0 0],[0 0],'-r')
+plot3([0 0],[0 40],[0 0],'-g')
+plot3([0 0],[0 0],[0 40],'-b')
+xlabel('X (inertial)')
+ylabel('Y (inertial)')
+zlabel('Z (inertial)')
 grid on
 axis equal
 
-plot3([0 40*V(1,1)],[0 40*V(1,2)],[0 40*V(1,3)],'-r')
-plot3([0 40*V(2,1)],[0 40*V(2,2)],[0 40*V(2,3)],'-g')
-plot3([0 40*V(3,1)],[0 40*V(3,2)],[0 40*V(3,3)],'-b')
+
+% We should be able to adjust the affine to convert the lab frame coords to
+% inertial frame coords
+pretrans = [
+    1 0 0 -com(1);
+    0 1 0 -com(2);
+    0 0 1 -com(3);
+    0 0 0 1
+    ];
+rot = [
+    eigvec [0; 0; 0];
+    0 0 0 1
+    ];
+posttrans = [
+    1 0 0 com(1);
+    0 1 0 com(2);
+    0 0 1 com(3);
+    0 0 0 1
+    ];
+lh_newaffine = posttrans * rot * pretrans * lhV.mat;
+
+
+%%
+% Flip signs on principal axes (rows of np_eigvec) to make the largest
+% element positive. Eigvec direction is arbitrary and algorithm dependent
+for row = 1:3
+    [~,idx] = max(abs(np_eigvec(row,:)));
+    flip = sign(np_eigvec(row,idx));
+    np_eigvec(row,:) = flip * np_eigvec(row,:);
+end
+
+
+%%
+% Compare vs numpy.linalg.eig - why do we need to transpose for case2?
+% Somehow python is computing a different Imat for case2 (signs different
+% on some off-diags). We have the same number of voxels for python and
+% matlab
+np_eigvec = [ ...
+    0.99796191  0.06320797 -0.00876178;
+    -0.04870839  0.84324049  0.5353251;
+    0.0412251  -0.53380729  0.84460066
+    ];
+
+figure(3); clf; hold on
+
+plot3(x,y,z,'.k')
+
+plot3([0 40*eigvec(1,1)],[0 40*eigvec(1,2)],[0 40*eigvec(1,3)],'-r')
+plot3([0 40*eigvec(2,1)],[0 40*eigvec(2,2)],[0 40*eigvec(2,3)],'-g')
+plot3([0 40*eigvec(3,1)],[0 40*eigvec(3,2)],[0 40*eigvec(3,3)],'-b')
+
+plot3([0 40*np_eigvec(1,1)],[0 40*np_eigvec(1,2)],[0 40*np_eigvec(1,3)],'-.r')
+plot3([0 40*np_eigvec(2,1)],[0 40*np_eigvec(2,2)],[0 40*np_eigvec(2,3)],'-.g')
+plot3([0 40*np_eigvec(3,1)],[0 40*np_eigvec(3,2)],[0 40*np_eigvec(3,3)],'-.b')
+
+xlabel('X (lab)')
+ylabel('Y (lab)')
+zlabel('Z (lab)')
+
+grid on
+axis equal
 
 
 

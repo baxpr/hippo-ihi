@@ -4,6 +4,7 @@ import argparse
 import nibabel
 import numpy
 import os
+import sys
 
 def get_hipp_xyz(img):
     data = img.get_fdata()
@@ -25,6 +26,18 @@ rh_xyz = get_hipp_xyz(rh_img)
 
 # mm coords of all voxels in both hippocampi
 xyz = numpy.concatenate((lh_xyz, rh_xyz), axis=0)
+
+print('left affine')
+print(lh_img.affine)
+
+print('right affine')
+print(rh_img.affine)
+
+print('Shape of xyz')
+print(xyz.shape)
+
+print('xyz[0,]')
+print(xyz[0,])
 
 # mm coords relative to center of mass
 com = numpy.array([
@@ -52,36 +65,57 @@ Imat = numpy.array([
     [Ixz, Iyz, Izz],
     ])
 
-# SVD of the inertial tensor gives a rotation matrix Ue 
-# (=Ve.T) to the principal axes
-Ue, Se, Ve = numpy.linalg.svd(Imat)
+print('Imat')
+print(Imat)
 
-# FIXME we need to choose the rotations to minimize
-# the actual angle traversed so that we don't flip everything upside
-# down. It's not the - sign in the matrix below. Maybe need to find
-# the principal axes, then the minimum rotation to align disregarding
-# sign?
+# Eigenvectors
+eigval, eigvec = numpy.linalg.eig(Imat)
+print('Raw eigvec')
+print(eigvec)
+print('eigval')
+print(eigval)
 
-# But we need to re-sort axes and transpose to get the right result.
-# What is the principled way to do this?
-# As this uses xyz mm coords, the data order of the file is irrelevant.
-t = numpy.array([
-    [0, 0, 1],
-    [0, 1, 0],
-    [-1, 0, 0],
-])
-reUe = numpy.matmul(Ue,t).T
+# Sort eigenvectors by eigenvalue so that principal axes are ordered
+#     x, y, z  =  ~LR, ~AP, ~IS
+# This is dependent on the hippocampus structure having smallest 
+# moment of inertia around its ~LR axis, second smallest around ~AP, 
+# largest around ~IS.
+idx = eigval.argsort()
+eigval = eigval[idx]
+eigvec = eigvec[:,idx]
 
-#testmat = numpy.array([
-#    [1, 0, 0],
-#    [0, .9397, -.3420],
-#    [0, .3420, .9397],
-#])
-#print('testmat'), print(testmat)
+print('Sorted eigvec')
+print(eigvec)
+print('Sorted eigval')
+print(eigval)
 
-# Translate COM to origin
-# Rotate
-# Translate COM back to position
+# Eigvec direction is arbitrary and algorithm dependent. So flip signs 
+# on principal axes (rows of np_eigvec) to make the largest element positive.
+for a in range(0,3):
+    idx = numpy.argmax(abs(eigvec[a,]))
+    flip = numpy.sign(eigvec[a,idx])
+    eigvec[a,] = flip * eigvec[a,]
+
+print('Flipped eigvec')
+print(eigvec)
+sys.exit(0)
+
+# Post-multiplying an inertial frame coord by eigvec gives the same coord in
+# the lab frame. E.g. the lab frame coord of the inertial frame's x axis is
+#
+#   [1 0 0] * eigvec
+#
+# In other words, the rows of eigvec are the principal axes in the lab frame.
+#
+# Pre-multiplying a lab frame coord by eigvec gives the same coord in the
+# inertial frame. To re-orient the hippocampus, we want these inertial
+# frame coords for each voxel in the structure.
+
+# Rotation
+rotmat = eigvec;
+rotmat = numpy.hstack(( rotmat, numpy.array([[0], [0], [0]]) ))
+rotmat = numpy.vstack(( rotmat, numpy.array([[0, 0, 0, 1]]) ))
+
 transmat0 = numpy.array([
     [1, 0, 0, -com[0]],
     [0, 1, 0, -com[1]],
@@ -99,12 +133,6 @@ transmatCOM = numpy.array([
 # We first translate to COM, then rotate, then translate back,
 # and the resulting matrix is left side multiplied with the affine
 # to produce the new affine.
-rotmat = reUe;
-rotmat = numpy.hstack(( rotmat, numpy.array([[0], [0], [0]]) ))
-rotmat = numpy.vstack(( rotmat, numpy.array([[0, 0, 0, 1]]) ))
-
-print(rotmat)
-
 allmat = numpy.matmul(rotmat, transmat0)
 allmat = numpy.matmul(transmatCOM, allmat)
 
