@@ -2,6 +2,7 @@
 
 import argparse
 import nibabel
+import nilearn.image
 import numpy
 import os
 import sys
@@ -21,11 +22,6 @@ args = parser.parse_args()
 aseg_img = nibabel.load(os.path.join(args.img_dir,f'aparc+aseg.nii.gz'))
 
 xyz = get_hipp_xyz(aseg_img, args.maskvals)
-
-# mm coords of all voxels in both hippocampi
-print(xyz.shape)
-print(numpy.min(xyz[:,2]))
-print(numpy.max(xyz[:,2]))
 
 # mm coords relative to center of mass
 com = numpy.array([
@@ -109,4 +105,24 @@ nu_img = nibabel.load(os.path.join(args.img_dir,'nu.nii.gz'))
 new_nu_affine = allmat @ nu_img.affine
 new_nu_img = nibabel.Nifti1Image(nu_img.get_fdata(), new_nu_affine)
 nibabel.save(new_nu_img, os.path.join(args.img_dir, 'rnu.nii.gz'))
+
+# Now resample in addition to reorienting. 0.5mm voxel to minimize
+# information loss
+rnew_aseg_img = nilearn.image.resample_img(
+    new_aseg_img, 
+    target_affine=0.5*numpy.eye(3),
+    interpolation='nearest',
+    force_resample=True,
+    copy_header=True,
+    )
+nibabel.save(rnew_aseg_img, os.path.join(args.img_dir, f'rraparc+aseg.nii.gz'))
+
+rnew_nu_img = nilearn.image.resample_img(
+    new_nu_img, 
+    target_affine=0.5*numpy.eye(3),
+    interpolation='linear',
+    force_resample=True,
+    copy_header=True,
+    )
+nibabel.save(rnew_nu_img, os.path.join(args.img_dir, 'rrnu.nii.gz'))
 
