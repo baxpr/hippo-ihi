@@ -18,6 +18,7 @@ import nibabel
 import numpy
 import pandas
 import os
+import scipy.ndimage
 
 
 def get_voxmm(img):
@@ -57,18 +58,30 @@ def write_region(seg_img, data, out_file):
     nibabel.save(img, out_file)
 
 
-def get_xyz_region_extent_on_axis(seg_xyz, data, axis):
+def get_region_extent_on_axis(seg_xyz, data, axis):
     keeps = data>0
     min_xyz = min(seg_xyz[keeps,axis])
     max_xyz = max(seg_xyz[keeps,axis])
     return min_xyz, max_xyz
 
 
+def compute_angle_from_xz(xz):
+    center = xz.mean(axis=0)
+    _, _, vh = numpy.linalg.svd(xz - center, full_matrices=False)
+    direction = vh[0]
+    angle = numpy.degrees(numpy.arctan2(direction[1], direction[0]))
+    return angle
+
+
 # Main number crunching
 if __name__ == '__main__':
 
+    # The seg image should be sampled on the same grid we're going to extract
+    # a slice from - e.g. the post-resampling rotated grid that aligns with the
+    # hippocampal longitudinal axis.
     parser = argparse.ArgumentParser()
     parser.add_argument('--seg_niigz', required=True)
+    parser.add_argument('--cs_dist_voxels', default=3)
     parser.add_argument('--out_dir', required=True)
     args = parser.parse_args()
 
@@ -79,15 +92,115 @@ if __name__ == '__main__':
     # for the affines to work out correctly.
     seg_img = nibabel.load(args.seg_niigz)
     seg_ijk, seg_xyz = get_voxmm(seg_img)
-    print(nibabel.aff2axcodes(seg_img.affine))
+    
+    # Following code assumes RAS data order (should be forced by 
+    # nibabel.as_closest_canonical when the seg file is created)
+    if nibabel.aff2axcodes(seg_img.affine) != ('R', 'A', 'S'):
+        raise Exception(f'Non-RAS data ordering in {args.seg_niigz}')
+    else:
+        print(f'Confirmed RAS data ordering in {args.seg_niigz}')
 
     # Relevant bits of FreeSurferColorLUT
-    #   17    Left-Hippocampus
-    #   53    Right-Hippocampus
-    # 1007    ctx-lh-fusiform
-    # 2007    ctx-rh-fusiform
-    # 1016    ctx-lh-parahippocampal 
-    # 2016    ctx-rh-parahippocampal
+    #
+    #      17    Left-Hippocampus
+    #    1007    ctx-lh-fusiform
+    #    1016    ctx-lh-parahippocampal 
+    #
+    #      53    Right-Hippocampus
+    #    2007    ctx-rh-fusiform
+    #    2016    ctx-rh-parahippocampal
+
+    # C2: Anterior and posterior extent of parahippocampus
+    # If we're going to use ijk coords to pull a slice, we need to know which axis is AP
+    # in the ijk coord system. For RAS data ordering, it's axis 1 of [0, 1, 2], and lower 
+    # values are more posterior.
+    lh_parahipp_data = extract_region(seg_img, 1016)
+    lh_parahipp_post, lh_parahipp_ant = get_region_extent_on_axis(seg_ijk, lh_parahipp_data, 1)
+    rh_parahipp_data = extract_region(seg_img, 2016)
+    rh_parahipp_post, rh_parahipp_ant = get_region_extent_on_axis(seg_ijk, rh_parahipp_data, 1)
+    
+    # C2: voxel index of coronal slice to measure in. Mean A/P center of L and R parahippocampus
+    C2slice = int(numpy.round(numpy.mean([
+        lh_parahipp_post,
+        lh_parahipp_ant,
+        rh_parahipp_post,
+        rh_parahipp_ant,
+        ])))
+    
+    # C2: reduce the problem to 2D, single slice
+    C2slice_img = seg_img.slicer[:, C2slice:C2slice+1, :]
+    C2slice_ijk = seg_ijk[:, C2slice:C2slice+1, :]
+    C2slice_xyz = seg_xyz[:, C2slice:C2slice+1, :]
+    nibabel.save(C2slice_img, os.path.join(args.out_dir, 'C2slice_seg.nii.gz'))
+    
+    # In the slice, compute distance transform for parahipp and fusiform
+    C2slice_data = C2slice_img.get_fdata()
+
+    lh_fus_dist = scipy.ndimage.distance_transform_edt(C2slice_data!=1007)
+    lh_fus_dist_img = nibabel.Nifti1Image(lh_fus_dist, C2slice_img.affine)
+    nibabel.save(lh_fus_dist_img, os.path.join(args.out_dir, 'lh_fus_dist.nii.gz'))
+
+    lh_parahipp_dist = scipy.ndimage.distance_transform_edt(C2slice_data!=1016)
+    lh_parahipp_dist_img = nibabel.Nifti1Image(lh_parahipp_dist, C2slice_img.affine)
+    nibabel.save(lh_parahipp_dist_img, os.path.join(args.out_dir, 'lh_parahipp_dist.nii.gz'))
+    
+    rh_fus_dist = scipy.ndimage.distance_transform_edt(C2slice_data!=2007)
+    rh_fus_dist_img = nibabel.Nifti1Image(rh_fus_dist, C2slice_img.affine)
+    nibabel.save(rh_fus_dist_img, os.path.join(args.out_dir, 'rh_fus_dist.nii.gz'))
+
+    rh_parahipp_dist = scipy.ndimage.distance_transform_edt(C2slice_data!=2016)
+    rh_parahipp_dist_img = nibabel.Nifti1Image(rh_parahipp_dist, C2slice_img.affine)
+    nibabel.save(rh_parahipp_dist_img, os.path.join(args.out_dir, 'rh_parahipp_dist.nii.gz'))
+
+    # Collateral sulcus is all voxels near both structures. Drop white matter overlap
+    lh_collsulc = numpy.maximum(lh_fus_dist, lh_parahipp_dist) <= args.cs_dist_voxels
+    lh_collsulc[C2slice_data==2] = False
+    lh_collsulc_img = nibabel.Nifti1Image(lh_collsulc.astype(numpy.int16), C2slice_img.affine)
+    nibabel.save(lh_collsulc_img, os.path.join(args.out_dir, 'lh_collsulc.nii.gz'))
+    
+    rh_collsulc = numpy.maximum(rh_fus_dist, rh_parahipp_dist) <= args.cs_dist_voxels
+    rh_collsulc[C2slice_data==41] = False
+    rh_collsulc_img = nibabel.Nifti1Image(rh_collsulc.astype(numpy.int16), C2slice_img.affine)
+    nibabel.save(rh_collsulc_img, os.path.join(args.out_dir, 'rh_collsulc.nii.gz'))
+    
+    # Find collateral sulcus mm coordinates and do SVD line fits.
+    # Angle from X axis is negative for L hemisphere for RAS data ordering
+    lh_collsulc_xz = C2slice_xyz[lh_collsulc][:, [0, 2]]
+    lh_collsulc_angle = -compute_angle_from_xz(lh_collsulc_xz)
+
+    rh_collsulc_xz = C2slice_xyz[rh_collsulc][:, [0, 2]]
+    rh_collsulc_angle = compute_angle_from_xz(rh_collsulc_xz)
+
+    # Collateral sulcus lateral extent
+    lh_collsulc_extent_lat = numpy.min(lh_collsulc_xz[:, 0])
+    lh_collsulc_extent_med = numpy.max(lh_collsulc_xz[:, 0])
+    rh_collsulc_extent_lat = numpy.max(rh_collsulc_xz[:, 0])
+    rh_collsulc_extent_med = numpy.min(rh_collsulc_xz[:, 0])
+    
+    # Hippocampus lateral extent
+    lh_hipp_extent_lat = numpy.min(C2slice_xyz[C2slice_data==17, 0])
+    lh_hipp_extent_med = numpy.max(C2slice_xyz[C2slice_data==17, 0])
+    rh_hipp_extent_lat = numpy.max(C2slice_xyz[C2slice_data==53, 0])
+    rh_hipp_extent_med = numpy.min(C2slice_xyz[C2slice_data==53, 0])
+
+    print(f'lh cs angle    {lh_collsulc_angle}')
+    print(f'rh cs angle    {rh_collsulc_angle}')
+    print(f'lh cs extent   {lh_collsulc_extent_lat} {lh_collsulc_extent_med}')
+    print(f'lh hipp extent {lh_hipp_extent_lat} {lh_hipp_extent_med}')
+    print(f'rh cs extent   {rh_collsulc_extent_lat} {rh_collsulc_extent_med}')
+    print(f'rh hipp extent {rh_hipp_extent_lat} {rh_hipp_extent_med}')
+    
+    # Position of collateral sulcus laterally (positive = lateral of hippocampus)
+    lh_cs_metric = - lh_collsulc_extent_lat + lh_hipp_extent_lat
+    rh_cs_metric = + lh_collsulc_extent_lat - lh_hipp_extent_lat
+    
+    print(f'lh_metric {lh_cs_metric}')
+    print(f'rh_metric {rh_cs_metric}')
+    
+    
+    import sys; sys.exit(0)
+
+
 
     # Medial and lateral extent of hippocampus in 3d (NOT USED)
     lh_hipp_data = extract_region(seg_img, 17)
@@ -99,32 +212,9 @@ if __name__ == '__main__':
     print(f'R hipp lat xyz {rh_hipp_lat_xyz}')
     print(f'R hipp med xyz {rh_hipp_med_xyz}')
         
-    import sys; sys.exit(0)
     
-    # FIXME make parahipp method match the above
-    # Anterior and posterior extent of parahippocampus
-    # If we're going to use ijk coords to pull a slice, we need to figure out which axis is AP
-    # in the ijk coord system
-    lh_parahipp_data = extract_region(seg_img, 1016)
-    lh_parahipp_post, lh_parahipp_ant = get_region_extent_on_axis(seg_xyz, lh_parahipp_data, 1)
-    rh_parahipp_data = extract_region(seg_img, 2016)
-    rh_parahipp_post, rh_parahipp_ant = get_region_extent_on_axis(seg_xyz, rh_parahipp_data, 1)
-    print(f'L parahipp ant {lh_parahipp_ant}')
-    print(f'L parahipp post {lh_parahipp_post}')
-    print(f'R parahipp ant {rh_parahipp_ant}')
-    print(f'R parahipp post {rh_parahipp_post}')
-    
-    # Coronal slice to measure C2
-    # FIXME are ijk coords consistent in the nifti? We need a slice index from the mm value
-    # Then e.g. slice_img = img.slicer[:, :, k:k+1] to get a 2D nifti
-    # relevant: nibabel.aff2axcodes
-    coronal_slice_C2_ymm = numpy.mean([
-        lh_parahipp_post,
-        lh_parahipp_ant,
-        rh_parahipp_post,
-        rh_parahipp_ant,
-        ])
-    print(coronal_slice_C2_ymm)
+
+
     
     # FIXME We are here
     # Find collateral sulcus: voxels within ~2mm of both a parahipp and a fusiform voxel

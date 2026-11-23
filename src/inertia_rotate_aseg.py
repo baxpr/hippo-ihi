@@ -115,7 +115,10 @@ rnew_aseg_img = nilearn.image.resample_img(
     force_resample=True,
     copy_header=True,
     )
-nibabel.save(rnew_aseg_img, os.path.join(args.img_dir, f'rraparc+aseg.nii.gz'))
+nibabel.save(
+    nibabel.as_closest_canonical(rnew_aseg_img),
+    os.path.join(args.img_dir, f'rraparc+aseg.nii.gz'),
+    )
 
 rnew_nu_img = nilearn.image.resample_img(
     new_nu_img, 
@@ -124,5 +127,9 @@ rnew_nu_img = nilearn.image.resample_img(
     force_resample=True,
     copy_header=True,
     )
-nibabel.save(rnew_nu_img, os.path.join(args.img_dir, 'rrnu.nii.gz'))
+nibabel.save(
+    nibabel.as_closest_canonical(rnew_nu_img),
+    os.path.join(args.img_dir, 'rrnu.nii.gz'),
+    )
+
 
