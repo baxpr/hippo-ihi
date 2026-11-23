@@ -34,9 +34,10 @@ def get_voxmm(img):
     xyz = nibabel.affines.apply_affine(seg_img.affine, ijk)
 
     # Unflatten to match the data array
+    ijk = ijk.reshape(dims[0], dims[1], dims[2], 3)
     xyz = xyz.reshape(dims[0], dims[1], dims[2], 3)
 
-    return xyz
+    return ijk, xyz
 
 
 def extract_region(seg_img, region_vals):
@@ -45,10 +46,9 @@ def extract_region(seg_img, region_vals):
    return data
 
 
-def trim_region_on_axis(seg_img, data, axis, minval, maxval):
-    xyz = get_voxmm(seg_img)
-    data[xyz[:,:,:,axis]<minval] = 0
-    data[xyz[:,:,:,axis]>maxval] = 0
+def trim_region_on_axis(seg_xyz, data, axis, minval, maxval):
+    data[seg_xyz[:,:,:,axis]<minval] = 0
+    data[seg_xyz[:,:,:,axis]>maxval] = 0
     return data
 
 
@@ -57,12 +57,11 @@ def write_region(seg_img, data, out_file):
     nibabel.save(img, out_file)
 
 
-def get_region_extent_on_axis(seg_img, data, axis):
-    xyz = get_voxmm(seg_img)
+def get_xyz_region_extent_on_axis(seg_xyz, data, axis):
     keeps = data>0
-    minval = min(xyz[keeps,axis])
-    maxval = max(xyz[keeps,axis])
-    return minval, maxval
+    min_xyz = min(seg_xyz[keeps,axis])
+    max_xyz = max(seg_xyz[keeps,axis])
+    return min_xyz, max_xyz
 
 
 # Main number crunching
@@ -79,6 +78,8 @@ if __name__ == '__main__':
     # Load the Freesurfer aseg. We need nifti format
     # for the affines to work out correctly.
     seg_img = nibabel.load(args.seg_niigz)
+    seg_ijk, seg_xyz = get_voxmm(seg_img)
+    print(nibabel.aff2axcodes(seg_img.affine))
 
     # Relevant bits of FreeSurferColorLUT
     #   17    Left-Hippocampus
@@ -88,27 +89,35 @@ if __name__ == '__main__':
     # 1016    ctx-lh-parahippocampal 
     # 2016    ctx-rh-parahippocampal
 
-    # Medial and lateral extent of hippocampus
+    # Medial and lateral extent of hippocampus in 3d (NOT USED)
     lh_hipp_data = extract_region(seg_img, 17)
-    lh_hipp_lat, lh_hipp_med = get_region_extent_on_axis(seg_img, lh_hipp_data, 0)
+    lh_hipp_lat_xyz, lh_hipp_med_xyz = get_xyz_region_extent_on_axis(seg_xyz, lh_hipp_data, 0)
     rh_hipp_data = extract_region(seg_img, 53)
-    rh_hipp_med, rh_hipp_lat = get_region_extent_on_axis(seg_img, rh_hipp_data, 0)
-    print(f'L hipp lat {lh_hipp_lat}')
-    print(f'L hipp med {lh_hipp_med}')
-    print(f'R hipp lat {rh_hipp_lat}')
-    print(f'R hipp med {rh_hipp_med}')
+    rh_hipp_med_xyz, rh_hipp_lat_xyz = get_xyz_region_extent_on_axis(seg_xyz, rh_hipp_data, 0)
+    print(f'L hipp lat xyz {lh_hipp_lat_xyz}')
+    print(f'L hipp med xyz {lh_hipp_med_xyz}')
+    print(f'R hipp lat xyz {rh_hipp_lat_xyz}')
+    print(f'R hipp med xyz {rh_hipp_med_xyz}')
+        
+    import sys; sys.exit(0)
     
+    # FIXME make parahipp method match the above
     # Anterior and posterior extent of parahippocampus
+    # If we're going to use ijk coords to pull a slice, we need to figure out which axis is AP
+    # in the ijk coord system
     lh_parahipp_data = extract_region(seg_img, 1016)
-    lh_parahipp_post, lh_parahipp_ant = get_region_extent_on_axis(seg_img, lh_parahipp_data, 1)
+    lh_parahipp_post, lh_parahipp_ant = get_region_extent_on_axis(seg_xyz, lh_parahipp_data, 1)
     rh_parahipp_data = extract_region(seg_img, 2016)
-    rh_parahipp_post, rh_parahipp_ant = get_region_extent_on_axis(seg_img, rh_parahipp_data, 1)
+    rh_parahipp_post, rh_parahipp_ant = get_region_extent_on_axis(seg_xyz, rh_parahipp_data, 1)
     print(f'L parahipp ant {lh_parahipp_ant}')
     print(f'L parahipp post {lh_parahipp_post}')
     print(f'R parahipp ant {rh_parahipp_ant}')
     print(f'R parahipp post {rh_parahipp_post}')
     
     # Coronal slice to measure C2
+    # FIXME are ijk coords consistent in the nifti? We need a slice index from the mm value
+    # Then e.g. slice_img = img.slicer[:, :, k:k+1] to get a 2D nifti
+    # relevant: nibabel.aff2axcodes
     coronal_slice_C2_ymm = numpy.mean([
         lh_parahipp_post,
         lh_parahipp_ant,
@@ -121,8 +130,11 @@ if __name__ == '__main__':
     # Find collateral sulcus: voxels within ~2mm of both a parahipp and a fusiform voxel
     # And within ~1mm of the C2 measuring slice
     # Make a collateral sulcus image for review
+    # We can use the distance transform in 2D if we resample to a hippocampus-oriented
+    # grid (or do the processing in the original grid, but that adds positioning variability)
+    # nilearn.image.resample_img with target_affine as computed by the inertia code?
     
-    import sys; sys.exit(0)
+    
 
 
 
