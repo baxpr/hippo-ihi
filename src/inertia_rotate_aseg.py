@@ -6,21 +6,21 @@ import numpy
 import os
 import sys
 
-def get_hipp_xyz(img):
+def get_hipp_xyz(img, values):
     data = img.get_fdata()
-    idx = numpy.where((data==17) | (data==53))  # find aseg hippocampus voxels L 17, R 53
-    print(idx)
+    idx = numpy.where(numpy.isin(data, values))
     ijk = numpy.vstack(idx).T  # list of arrays to (voxels, 3) array
     xyz = nibabel.affines.apply_affine(img.affine, ijk)  # get mm coords
     return xyz
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--img_dir', required=True)
+parser.add_argument('--maskvals', nargs='+', default=[17, 53], type=int) # 17, 53 default to aseg hippocampus
 args = parser.parse_args()
 
 aseg_img = nibabel.load(os.path.join(args.img_dir,f'aparc+aseg.nii.gz'))
 
-xyz = get_hipp_xyz(aseg_img)
+xyz = get_hipp_xyz(aseg_img, args.maskvals)
 
 # mm coords of all voxels in both hippocampi
 print(xyz.shape)
