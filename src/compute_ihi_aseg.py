@@ -219,7 +219,7 @@ if __name__ == '__main__':
     
     # C2 scoring from metrics
     lh_collsulc_verticality, lh_C2 = C2_score(lh_collsulc_angle, lh_collsulc_metric)
-    rhcollsulc_verticality, rh_C2 = C2_score(rh_collsulc_angle, rh_collsulc_metric)
+    rh_collsulc_verticality, rh_C2 = C2_score(rh_collsulc_angle, rh_collsulc_metric)
 
 
     print(f'lh cs mm past hippocampus  {lh_collsulc_metric}')
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     print(f'lh C2 score          {lh_C2}')
     print(f'rh cs mm past hippocampus  {rh_collsulc_metric}')
     print(f'rh cs angle degrees  {rh_collsulc_angle}')
-    print(f'rh cs verticality    {rhcollsulc_verticality}')
+    print(f'rh cs verticality    {rh_collsulc_verticality}')
     print(f'rh C2 score          {rh_C2}')    
 
 
