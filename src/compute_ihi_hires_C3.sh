@@ -36,11 +36,11 @@ for hemi in lh rh; do
 done
 
 # Rotate to align principal axes of hippocampus with image axes
-inertia_rotate.py --img_dir "${out_dir}" --hatag "${hatag}"
+inertia_rotate_hires_C3.py --img_dir "${out_dir}" --hatag "${hatag}"
 
 # Compute IHI metrics
 for hemi in lh rh; do
-    compute_ihi.py \
+    compute_ihi_hires_C3.py \
         --hemi ${hemi} \
         --seg_niigz r${hemi}.${hatag}.nii.gz \
         --slice_min_delta ${slice_min_delta} \
@@ -49,4 +49,4 @@ for hemi in lh rh; do
 done
 
 # Make QC PDF
-make_pdf.sh
+make_pdf_hires_C3.sh

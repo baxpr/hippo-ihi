@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
-# How do we get freeview to show us in the right alignment?
-# fsleyes does it fine.
-
-# Show an atlas image first to force freeview into atlas space
-# alignment, so it won't pick up the voxel grid of the rotated
-# subject nu instead.
+# How do we get freeview to show us in the right alignment? fsleyes does it fine:
+# Load an (invisible) atlas image first to force freeview into atlas space
+# alignment, so it won't pick up the voxel grid of the rotated subject nu instead.
 #
-# Sampleslice is not aligned with voxels, so looks not great.
+# The sampled slice is not aligned with voxels, though, so doesn't look great.
 
 for hemi in lh rh; do
 
@@ -64,18 +61,18 @@ montage -mode concatenate \
 convert \
     -size 1224x1584 xc:white \
     -gravity center \( page_lh.png -resize 1194x1454 \) -geometry +0+0 -composite \
-    -gravity NorthEast -pointsize 24 -annotate +20+50 "Left hippocampus IHI" \
+    -gravity NorthEast -pointsize 24 -annotate +20+50 "Left hippocampus IHI C3" \
     -gravity SouthEast -pointsize 24 -annotate +20+20 "${thedate}" \
     -gravity NorthWest -pointsize 24 -annotate +20+50 "${label_info}" \
     page_lh.png
 convert \
     -size 1224x1584 xc:white \
     -gravity center \( page_rh.png -resize 1194x1454 \) -geometry +0+0 -composite \
-    -gravity NorthEast -pointsize 24 -annotate +20+50 "Right hippocampus IHI" \
+    -gravity NorthEast -pointsize 24 -annotate +20+50 "Right hippocampus IHI C3" \
     -gravity SouthEast -pointsize 24 -annotate +20+20 "${thedate}" \
     -gravity NorthWest -pointsize 24 -annotate +20+50 "${label_info}" \
     page_rh.png
 
 # PDF
-convert page_lh.png page_rh.png hippo-ihi.pdf
+convert page_lh.png page_rh.png hippo-ihi-hires-C3.pdf
 

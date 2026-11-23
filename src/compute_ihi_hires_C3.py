@@ -150,5 +150,5 @@ if __name__ == '__main__':
     statdf = pandas.DataFrame.from_dict(stats)
     stats_dir = os.path.join(args.out_dir, 'STATS')
     os.makedirs(stats_dir, exist_ok=True)
-    statdf.to_csv(os.path.join(stats_dir, f'{args.hemi}-hippo-ihi.csv'), index=False)
+    statdf.to_csv(os.path.join(stats_dir, f'{args.hemi}-hippo-ihi-hires-C3.csv'), index=False)
 
