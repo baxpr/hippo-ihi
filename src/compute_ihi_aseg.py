@@ -73,6 +73,31 @@ def compute_angle_from_xz(xz):
     return angle
 
 
+def C2_score(angle, metric):
+    if angle <= args.c2_angle_thresholds[0]:
+        verticality = 'hor'
+    elif angle <= args.c2_angle_thresholds[1]:
+        verticality = 'obl'
+    else:
+        verticality = 'ver'
+
+    if metric < -args.c2_adjacency_mm:
+        match verticality:
+            case 'hor': c2 = 0
+            case 'obl' | 'ver': c2 = 0.5
+    elif metric > args.c2_adjacency_mm:
+        match verticality:
+            case 'hor': c2 = 1
+            case 'obl': c2 = 1.5
+            case 'ver': c2 = 2
+    else:
+        match verticality:
+            case 'hor' | 'obl': c2 = 1
+            case 'ver': c2 = 1.5
+
+    return verticality, c2
+
+
 # Main number crunching
 if __name__ == '__main__':
 
@@ -82,6 +107,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--seg_niigz', required=True)
     parser.add_argument('--cs_dist_voxels', default=3)
+    parser.add_argument('--c2_angle_thresholds', nargs=2, default=[30, 60], type=float)    
+    parser.add_argument('--c2_adjacency_mm', default=4, type=float)    
     parser.add_argument('--out_dir', required=True)
     args = parser.parse_args()
 
@@ -184,15 +211,24 @@ if __name__ == '__main__':
     rh_hipp_extent_med = numpy.min(C2slice_xyz[C2slice_data==53, 0])
 
     # Position of collateral sulcus laterally (positive = lateral of hippocampus)
-    lh_cs_metric = - lh_collsulc_extent_lat + lh_hipp_extent_lat
-    rh_cs_metric = + rh_collsulc_extent_lat - rh_hipp_extent_lat
+    lh_collsulc_metric = - lh_collsulc_extent_lat + lh_hipp_extent_lat
+    rh_collsulc_metric = + rh_collsulc_extent_lat - rh_hipp_extent_lat
     
+    # C2 scoring from metrics
+    lh_verticality, lh_C2 = C2_score(lh_collsulc_angle, lh_collsulc_metric)
+    rh_verticality, rh_C2 = C2_score(rh_collsulc_angle, rh_collsulc_metric)
+
+
+    print(f'lh cs mm past hippocampus  {lh_collsulc_metric}')
     print(f'lh cs angle degrees  {lh_collsulc_angle}')
+    print(f'lh cs verticality    {lh_verticality}')
+    print(f'lh C2 score          {lh_C2}')
+    print(f'rh cs mm past hippocampus  {rh_collsulc_metric}')
     print(f'rh cs angle degrees  {rh_collsulc_angle}')
-    print(f'lh cs mm past hippocampus  {lh_cs_metric}')
-    print(f'rh cs mm past hippocampus  {rh_cs_metric}')
+    print(f'rh cs verticality    {rh_verticality}')
+    print(f'rh C2 score          {rh_C2}')
     
-    
+
     import sys; sys.exit(0)
 
 
