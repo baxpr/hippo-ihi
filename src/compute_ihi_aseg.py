@@ -127,6 +127,9 @@ if __name__ == '__main__':
     else:
         print(f'Confirmed RAS data ordering in {args.seg_niigz}')
 
+    ###############################################################################################
+    ## C2 score
+    
     # Relevant bits of FreeSurferColorLUT
     #
     #      17    Left-Hippocampus
@@ -137,7 +140,7 @@ if __name__ == '__main__':
     #    2007    ctx-rh-fusiform
     #    2016    ctx-rh-parahippocampal
 
-    # C2: Anterior and posterior extent of parahippocampus
+    # Anterior and posterior extent of parahippocampus
     # If we're going to use ijk coords to pull a slice, we need to know which axis is AP
     # in the ijk coord system. For RAS data ordering, it's axis 1 of [0, 1, 2], and lower 
     # values are more posterior.
@@ -146,7 +149,7 @@ if __name__ == '__main__':
     rh_parahipp_data = extract_region(seg_img, 2016)
     rh_parahipp_post, rh_parahipp_ant = get_region_extent_on_axis(seg_ijk, rh_parahipp_data, 1)
     
-    # C2: voxel index of coronal slice to measure in. Mean A/P center of L and R parahippocampus
+    # Voxel index of coronal slice to measure in. Mean A/P center of L and R parahippocampus
     C2slice = int(numpy.round(numpy.mean([
         lh_parahipp_post,
         lh_parahipp_ant,
@@ -154,7 +157,7 @@ if __name__ == '__main__':
         rh_parahipp_ant,
         ])))
     
-    # C2: reduce the problem to 2D, single slice
+    # Reduce the problem to 2D, single slice
     C2slice_img = seg_img.slicer[:, C2slice:C2slice+1, :]
     C2slice_ijk = seg_ijk[:, C2slice:C2slice+1, :]
     C2slice_xyz = seg_xyz[:, C2slice:C2slice+1, :]
@@ -215,40 +218,32 @@ if __name__ == '__main__':
     rh_collsulc_metric = + rh_collsulc_extent_lat - rh_hipp_extent_lat
     
     # C2 scoring from metrics
-    lh_verticality, lh_C2 = C2_score(lh_collsulc_angle, lh_collsulc_metric)
-    rh_verticality, rh_C2 = C2_score(rh_collsulc_angle, rh_collsulc_metric)
+    lh_collsulc_verticality, lh_C2 = C2_score(lh_collsulc_angle, lh_collsulc_metric)
+    rhcollsulc_verticality, rh_C2 = C2_score(rh_collsulc_angle, rh_collsulc_metric)
 
 
     print(f'lh cs mm past hippocampus  {lh_collsulc_metric}')
     print(f'lh cs angle degrees  {lh_collsulc_angle}')
-    print(f'lh cs verticality    {lh_verticality}')
+    print(f'lh cs verticality    {lh_collsulc_verticality}')
     print(f'lh C2 score          {lh_C2}')
     print(f'rh cs mm past hippocampus  {rh_collsulc_metric}')
     print(f'rh cs angle degrees  {rh_collsulc_angle}')
-    print(f'rh cs verticality    {rh_verticality}')
-    print(f'rh C2 score          {rh_C2}')
-    
+    print(f'rh cs verticality    {rhcollsulc_verticality}')
+    print(f'rh C2 score          {rh_C2}')    
 
-    import sys; sys.exit(0)
-
-
-    # FIXME we are here
 
     # Output csv
     stats = [{
-        'hemisphere': args.hemi,
-        'source_file': args.seg_niigz,
-        'head_posterior_edge_mm': hipphead_ymin,
-        'slice_ymin_mm': ymin,
-        'slice_ymax_mm': ymax,
-        'subic_xmin_mm': subicular_xmin,
-        'subic_xmax_mm': subicular_xmax,
-        'dentate_xmin_mm': dentate_xmin,
-        'dentate_xmax_mm': dentate_xmax,
-        'ihi_stat': ihi,
+        'C2_coronal_slice_index': C2slice,
+        'lh_collsulc_extends_past_hipp_mm': lh_collsulc_metric,
+        'lh_collsulc_angle_deg': lh_collsulc_angle,
+        'lh_collsulc_verticality': lh_collsulc_verticality,
+        'lh_C2_score': lh_C2,
+        'rh_collsulc_extends_past_hipp_mm': rh_collsulc_metric,
+        'rh_collsulc_angle_deg': rh_collsulc_angle,
+        'rh_collsulc_verticality': rh_collsulc_verticality,
+        'rh_C2_score': rh_C2,
     }]
     statdf = pandas.DataFrame.from_dict(stats)
-    stats_dir = os.path.join(args.out_dir, 'STATS')
-    os.makedirs(stats_dir, exist_ok=True)
-    statdf.to_csv(os.path.join(stats_dir, f'{args.hemi}-hippo-ihi-hires-C3.csv'), index=False)
+    statdf.to_csv(os.path.join(args.out_dir, f'aseg-ihi-stats.csv'), index=False)
 
