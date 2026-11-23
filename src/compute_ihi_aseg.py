@@ -236,11 +236,11 @@ if __name__ == '__main__':
     stats = [{
         'C2_coronal_slice_index': C2slice,
         'lh_collsulc_extends_past_hipp_mm': lh_collsulc_metric,
-        'lh_collsulc_angle_deg': lh_collsulc_angle,
+        'lh_collsulc_angle_deg': numpy.round(lh_collsulc_angle, 1),
         'lh_collsulc_verticality': lh_collsulc_verticality,
         'lh_C2_score': lh_C2,
         'rh_collsulc_extends_past_hipp_mm': rh_collsulc_metric,
-        'rh_collsulc_angle_deg': rh_collsulc_angle,
+        'rh_collsulc_angle_deg': numpy.round(rh_collsulc_angle, 1),
         'rh_collsulc_verticality': rh_collsulc_verticality,
         'rh_C2_score': rh_C2,
     }]
