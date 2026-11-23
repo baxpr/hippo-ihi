@@ -183,61 +183,20 @@ if __name__ == '__main__':
     rh_hipp_extent_lat = numpy.max(C2slice_xyz[C2slice_data==53, 0])
     rh_hipp_extent_med = numpy.min(C2slice_xyz[C2slice_data==53, 0])
 
-    print(f'lh cs angle    {lh_collsulc_angle}')
-    print(f'rh cs angle    {rh_collsulc_angle}')
-    print(f'lh cs extent   {lh_collsulc_extent_lat} {lh_collsulc_extent_med}')
-    print(f'lh hipp extent {lh_hipp_extent_lat} {lh_hipp_extent_med}')
-    print(f'rh cs extent   {rh_collsulc_extent_lat} {rh_collsulc_extent_med}')
-    print(f'rh hipp extent {rh_hipp_extent_lat} {rh_hipp_extent_med}')
-    
     # Position of collateral sulcus laterally (positive = lateral of hippocampus)
     lh_cs_metric = - lh_collsulc_extent_lat + lh_hipp_extent_lat
-    rh_cs_metric = + lh_collsulc_extent_lat - lh_hipp_extent_lat
+    rh_cs_metric = + rh_collsulc_extent_lat - rh_hipp_extent_lat
     
-    print(f'lh_metric {lh_cs_metric}')
-    print(f'rh_metric {rh_cs_metric}')
+    print(f'lh cs angle degrees  {lh_collsulc_angle}')
+    print(f'rh cs angle degrees  {rh_collsulc_angle}')
+    print(f'lh cs mm past hippocampus  {lh_cs_metric}')
+    print(f'rh cs mm past hippocampus  {rh_cs_metric}')
     
     
     import sys; sys.exit(0)
 
 
-
-    # Medial and lateral extent of hippocampus in 3d (NOT USED)
-    lh_hipp_data = extract_region(seg_img, 17)
-    lh_hipp_lat_xyz, lh_hipp_med_xyz = get_xyz_region_extent_on_axis(seg_xyz, lh_hipp_data, 0)
-    rh_hipp_data = extract_region(seg_img, 53)
-    rh_hipp_med_xyz, rh_hipp_lat_xyz = get_xyz_region_extent_on_axis(seg_xyz, rh_hipp_data, 0)
-    print(f'L hipp lat xyz {lh_hipp_lat_xyz}')
-    print(f'L hipp med xyz {lh_hipp_med_xyz}')
-    print(f'R hipp lat xyz {rh_hipp_lat_xyz}')
-    print(f'R hipp med xyz {rh_hipp_med_xyz}')
-        
-    
-
-
-    
-    # FIXME We are here
-    # Find collateral sulcus: voxels within ~2mm of both a parahipp and a fusiform voxel
-    # And within ~1mm of the C2 measuring slice
-    # Make a collateral sulcus image for review
-    # We can use the distance transform in 2D if we resample to a hippocampus-oriented
-    # grid (or do the processing in the original grid, but that adds positioning variability)
-    # nilearn.image.resample_img with target_affine as computed by the inertia code?
-    
-    
-
-
-
-    # Sampling slice
-    ymax = hipphead_ymin - args.slice_min_delta
-    ymin = hipphead_ymin - args.slice_max_delta
-    slice_data = numpy.ones(seg_img.header['dim'][1:4])
-    slice_data = trim_region_on_axis(seg_img, slice_data, 1, ymin, ymax)
-    write_region(seg_img, slice_data, 
-        os.path.join(args.out_dir, f'{ftag}_sampleslice.nii.gz'))
-
-
-
+    # FIXME we are here
 
     # Output csv
     stats = [{
