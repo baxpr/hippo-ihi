@@ -68,6 +68,7 @@ def compute_angle_from_xz(xz):
 
 
 def C2_score(angle, metric):
+    
     if angle <= args.c2_angle_thresholds[0]:
         verticality = 'hor'
     elif angle <= args.c2_angle_thresholds[1]:
