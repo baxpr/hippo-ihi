@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-#
-# Works with the "world" space coordinate axes per the transform 
-# (affine) in the nifti header. Limits to a slice in Y just posterior
-# of the hippocampal head, then finds the extent in X of subicular
-# and dentate regions as defined below from Freesurfer high resolution
-# hippocampus segmentation. 
 
 # REFERENCE: To get mm coords for a list of voxels
 # https://neurostars.org/t/extract-voxel-coordinates/7282
@@ -81,11 +75,11 @@ def C2_score(angle, metric):
     else:
         verticality = 'ver'
 
-    if metric < -args.c2_adjacency_mm:
+    if metric < -args.c2_cs_hipp_adjacency_mm:
         match verticality:
             case 'hor': c2 = 0
             case 'obl' | 'ver': c2 = 0.5
-    elif metric > args.c2_adjacency_mm:
+    elif metric > args.c2_cs_hipp_adjacency_mm:
         match verticality:
             case 'hor': c2 = 1
             case 'obl': c2 = 1.5
@@ -108,7 +102,7 @@ if __name__ == '__main__':
     parser.add_argument('--seg_niigz', required=True)
     parser.add_argument('--cs_dist_voxels', default=3)
     parser.add_argument('--c2_angle_thresholds', nargs=2, default=[30, 60], type=float)    
-    parser.add_argument('--c2_adjacency_mm', default=4, type=float)    
+    parser.add_argument('--c2_cs_hipp_adjacency_mm', default=4, type=float)    
     parser.add_argument('--out_dir', required=True)
     args = parser.parse_args()
 
