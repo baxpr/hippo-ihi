@@ -100,6 +100,7 @@ if __name__ == '__main__':
     # a slice from - e.g. the post-resampling rotated grid that aligns with the
     # hippocampal longitudinal axis.
     parser = argparse.ArgumentParser()
+    parser.add_argument('--t1_niigz', required=True)
     parser.add_argument('--seg_niigz', required=True)
     parser.add_argument('--cs_dist_voxels', default=3)
     parser.add_argument('--c2_angle_thresholds', nargs=2, default=[30, 60], type=float)    
@@ -110,10 +111,11 @@ if __name__ == '__main__':
     # Filename tag
     ftag = os.path.basename(args.seg_niigz).strip('.nii.gz')
 
-    # Load the Freesurfer aseg. We need nifti format
+    # Load the Freesurfer images. We need nifti format
     # for the affines to work out correctly.
     seg_img = nibabel.load(args.seg_niigz)
     seg_ijk, seg_xyz = get_voxmm(seg_img)
+    t1_img = nibabel.load(args.t1_niigz)
     
     # Following code assumes RAS data order (should be forced by 
     # nibabel.as_closest_canonical when the seg file is created)
@@ -152,11 +154,26 @@ if __name__ == '__main__':
         rh_parahipp_ant,
         ])))
     
-    # Reduce the problem to 2D, single slice
+    # Reduce the problem to 2D, single slice. Store seg, nu, and slice mask images
     C2slice_img = seg_img.slicer[:, C2slice:C2slice+1, :]
     C2slice_ijk = seg_ijk[:, C2slice:C2slice+1, :]
     C2slice_xyz = seg_xyz[:, C2slice:C2slice+1, :]
     nibabel.save(C2slice_img, os.path.join(args.out_dir, 'C2slice_seg.nii.gz'))
+
+    t1slice_img = t1_img.slicer[:, C2slice:C2slice+1, :]
+    nibabel.save(t1slice_img, os.path.join(args.out_dir, 'C2slice_t1.nii.gz'))
+
+    mask_data = numpy.zeros(seg_img.shape, dtype=numpy.uint8)
+    mask_data[:, C2slice:C2slice+1, :] = 1
+    mask_img = nibabel.Nifti1Image(mask_data, seg_img.affine, seg_img.header)
+    mask_img.set_data_dtype(numpy.uint8)
+    nibabel.save(mask_img, os.path.join(args.out_dir, 'C2slice_mask.nii.gz'))    
+    
+    # Store a seg image with only the relevant regions marked
+    C2slice_roisdata = C2slice_img.get_fdata()
+    C2slice_roisdata[~numpy.isin(C2slice_roisdata, [17, 1007, 1016, 53, 2007, 2016])] = 0
+    C2slice_roiimg = nibabel.Nifti1Image(C2slice_roisdata, C2slice_img.affine)
+    nibabel.save(C2slice_roiimg, os.path.join(args.out_dir, 'slicerois.nii.gz'))
     
     # In the slice, compute distance transform for parahipp and fusiform
     C2slice_data = C2slice_img.get_fdata()
