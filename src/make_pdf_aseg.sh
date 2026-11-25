@@ -28,16 +28,17 @@ freeview \
     -ras $(get_com.py --roi_niigz slicerois.nii.gz --imgval 53) \
     -ss rh_qc.png
 
-thedate=$(date)
-
 magick \( rh_qc.png lh_qc.png -bordercolor white -border 5 +append \) \
     \( qcslice.png -bordercolor white -border 5 \) \
     -gravity center -append page.png
 
+thedate=$(date)
+statstr=$(<statstr.txt)
 convert \
     -size 1224x1584 xc:white \
     -gravity center \( page.png -resize 1194x1454 \) -geometry +0+0 -composite \
     -gravity NorthEast -pointsize 24 -annotate +20+50 "IHI C2 (radiol view)" \
+    -gravity NorthEast -pointsize 18 -annotate +20+80 "${statstr}" \
     -gravity SouthEast -pointsize 24 -annotate +20+20 "${thedate}" \
     -gravity NorthWest -pointsize 24 -annotate +20+50 "${label_info}" \
     ihi-C2.pdf

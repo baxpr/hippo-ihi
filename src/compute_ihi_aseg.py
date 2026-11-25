@@ -259,3 +259,11 @@ if __name__ == '__main__':
     statdf = pandas.DataFrame.from_dict(stats)
     statdf.to_csv(os.path.join(args.out_dir, f'aseg-ihi-stats.csv'), index=False)
 
+    # Output text snippet for PDF
+    pdftext = \
+        f'Angle (deg): R {numpy.round(rh_collsulc_angle, 1)}, L {numpy.round(lh_collsulc_angle, 1)}\n' \
+        f'Verticality: R {rh_collsulc_verticality}, L {lh_collsulc_verticality}\n' \
+        f'CS lat extent past hipp (mm): R {rh_collsulc_metric}, L {lh_collsulc_metric}\n' \
+        f'C2 score: R {rh_C2}, L {lh_C2}\n'
+    with open(os.path.join(args.out_dir, 'statstr.txt'), 'w', encoding='utf-8') as f:
+        f.write(pdftext)
